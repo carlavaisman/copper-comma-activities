@@ -1,0 +1,899 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<title>Office Hours: Before You Hit Send | Copper Comma</title><meta name="viewport" content="width=device-width,initial-scale=1">
+<link href="https://fonts.googleapis.com/css2?family=Press+Start+2P&display=swap" rel="stylesheet">
+<style>
+  * { box-sizing: border-box; }
+  html,body {
+    margin:0; padding:0; height:100%;
+    background:#14151a; color:#e9e9ef;
+    font-family: 'Press Start 2P', monospace;
+    overflow:hidden;
+    user-select:none;
+  }
+  #app { width:100%; height:100%; display:flex; align-items:center; justify-content:center; }
+
+  /* ---------- Character select ---------- */
+  #charSelect {
+    display:flex; flex-direction:column; align-items:center; gap:22px;
+    padding:30px 20px;
+  }
+  #charSelect h1 { font-size:16px; color:#ffd76b; text-shadow:2px 2px 0 #4a3600; margin:0 0 6px; }
+  #charSelect p.sub { font-size:9px; color:#9aa0ad; margin:0 0 10px; line-height:1.8; text-align:center; }
+  .picker { display:flex; gap:26px; }
+  .charCard {
+    background:#1e2028; border:3px solid #333646; border-radius:6px;
+    padding:14px; width:150px; text-align:center; cursor:pointer;
+    transition: border-color .15s, transform .15s;
+  }
+  .charCard:hover { transform: translateY(-3px); }
+  .charCard.selected { border-color:#5ad1ff; box-shadow:0 0 0 3px rgba(90,209,255,.25); }
+  .charCard canvas { image-rendering: pixelated; background:#2a2d38; border-radius:4px; }
+  .charCard div.name { font-size:10px; margin-top:10px; color:#e9e9ef; }
+  .charCard div.role { font-size:7px; margin-top:6px; color:#8b93a3; line-height:1.6; }
+  #startBtn {
+    margin-top:6px; font-family:inherit; font-size:11px; padding:14px 26px;
+    background:#5ad1ff; color:#0a1220; border:none; border-radius:6px; cursor:pointer;
+    box-shadow:0 4px 0 #2a8bb3;
+  }
+  #startBtn:disabled { background:#3a3d47; color:#666; box-shadow:0 4px 0 #222; cursor:not-allowed; }
+  #startBtn:not(:disabled):active { box-shadow:0 1px 0 #2a8bb3; transform:translateY(3px); }
+
+  /* ---------- Game screen ---------- */
+  #gameWrap { display:none; flex-direction:column; align-items:center; gap:8px; }
+  #topbar {
+    width:960px; display:flex; justify-content:space-between; align-items:center;
+    font-size:8px; color:#9aa0ad; line-height:1.6;
+  }
+  #topbar .hint b { color:#ffd76b; }
+  #inventory { display:flex; gap:8px; }
+  .invSlot {
+    width:30px; height:30px; border:2px solid #3a3d47; border-radius:4px;
+    display:flex; align-items:center; justify-content:center; font-size:10px;
+    background:#20222b; color:#4a4d57; transition: all .25s;
+  }
+  .invSlot.filled { background:#ffd76b; color:#2a1e00; border-color:#ffb84d; box-shadow:0 0 10px rgba(255,215,107,.6); }
+
+  #canvasFrame {
+    border:8px solid #2a2d38; border-radius:8px; box-shadow:0 0 0 3px #0d0e12, 0 10px 30px rgba(0,0,0,.5);
+    position:relative;
+  }
+  canvas#game { image-rendering: pixelated; image-rendering: crisp-edges; display:block; background:#000; }
+
+  #prompt {
+    position:absolute; transform:translate(-50%,-100%);
+    background:#ffd76b; color:#2a1e00; font-size:8px; padding:5px 8px; border-radius:4px;
+    display:none; white-space:nowrap; pointer-events:none;
+    box-shadow:0 2px 0 #b98f2b;
+  }
+
+  #dialogueBox {
+    position:absolute; left:20px; right:20px; bottom:20px;
+    background:#1a1c24; border:3px solid #5ad1ff; border-radius:8px;
+    padding:14px 16px; display:none; gap:10px;
+  }
+  #dialogueBox .who { font-size:9px; color:#5ad1ff; margin-bottom:8px; }
+  #dialogueBox .txt { font-size:9px; line-height:1.9; color:#e9e9ef; min-height:36px; }
+  #dialogueBox .adv { font-size:7px; color:#8b93a3; text-align:right; margin-top:8px; }
+  .portrait { width:34px; height:34px; border-radius:5px; flex:none; }
+
+  #toast {
+    position:absolute; top:14px; left:50%; transform:translateX(-50%);
+    background:#2ecf7a; color:#04331a; font-size:8px; padding:8px 12px; border-radius:6px;
+    opacity:0; transition:opacity .3s; pointer-events:none; white-space:nowrap;
+  }
+  #toast.show { opacity:1; }
+
+  /* ---------- Computer overlay ---------- */
+  #computerOverlay {
+    display:none; position:fixed; inset:0; background:#0b0c10; z-index:50;
+    flex-direction:column; align-items:center; padding:26px 20px; overflow:auto;
+  }
+  #computerOverlay h2 { font-size:14px; color:#ffd76b; margin:0 0 4px; }
+  #computerOverlay .crumb { font-size:8px; color:#8b93a3; margin-bottom:18px; }
+  .tabs { display:flex; gap:10px; margin-bottom:22px; }
+  .tabBtn {
+    font-family:inherit; font-size:8px; padding:10px 14px; border-radius:6px;
+    background:#1e2028; color:#8b93a3; border:2px solid #333646; cursor:pointer;
+  }
+  .tabBtn.active { background:#5ad1ff; color:#0a1220; border-color:#5ad1ff; }
+  .tabBtn.done::after { content:" ✓"; color:#2ecf7a; }
+  .tabPanel { display:none; width:100%; max-width:920px; }
+  .tabPanel.active { display:block; }
+  .panelCard {
+    background:#171922; border:2px solid #2b2e3a; border-radius:10px; padding:22px;
+  }
+  .panelCard h3 { font-size:11px; color:#e9e9ef; margin:0 0 10px; }
+  .panelCard p.desc { font-size:8px; color:#9aa0ad; line-height:1.9; margin:0 0 20px; }
+
+  /* diagram labeling */
+  .diagram { display:flex; gap:14px; flex-wrap:wrap; margin-bottom:22px; }
+  .diagBox {
+    flex:1; min-width:150px; background:#20222b; border:2px dashed #444759; border-radius:8px;
+    padding:12px; text-align:center; min-height:90px;
+  }
+  .diagBox .label { font-size:9px; color:#ffd76b; margin-bottom:10px; }
+  .diagBox .slot {
+    font-size:7.5px; color:#666a78; border:1px dashed #3a3d47; border-radius:5px; padding:10px 6px; min-height:38px;
+    display:flex; align-items:center; justify-content:center; line-height:1.7;
+  }
+  .diagBox.correct { border-color:#2ecf7a; }
+  .diagBox.correct .slot { color:#bff7d6; border-color:#2ecf7a; background:rgba(46,207,122,.08); }
+  .diagBox.wrong { animation: shake .3s; border-color:#ff5d6c; }
+  @keyframes shake { 0%,100%{transform:translateX(0);} 25%{transform:translateX(-5px);} 75%{transform:translateX(5px);} }
+
+  .chipBank { display:flex; gap:10px; flex-wrap:wrap; }
+  .chip {
+    font-size:7.5px; line-height:1.7; background:#2a2d38; border:2px solid #444759; border-radius:6px;
+    padding:9px 11px; cursor:grab; color:#e9e9ef; max-width:190px;
+  }
+  .chip:active { cursor:grabbing; }
+  .chip.hidden { display:none; }
+
+  /* matching */
+  .matchWrap { position:relative; display:flex; justify-content:space-between; gap:80px; padding:10px 0; }
+  .matchCol { display:flex; flex-direction:column; gap:16px; width:280px; }
+  .matchItem {
+    font-size:7.5px; line-height:1.7; background:#2a2d38; border:2px solid #444759; border-radius:6px;
+    padding:10px 12px; cursor:pointer; color:#e9e9ef;
+  }
+  .matchItem.sel { border-color:#5ad1ff; box-shadow:0 0 8px rgba(90,209,255,.5); }
+  .matchItem.locked { border-color:#2ecf7a; background:rgba(46,207,122,.08); cursor:default; }
+  .matchItem.wrong { animation: shake .3s; border-color:#ff5d6c; }
+  svg.lines { position:absolute; inset:0; width:100%; height:100%; pointer-events:none; }
+
+  /* balance */
+  .scaleWrap { display:flex; flex-direction:column; align-items:center; margin-bottom:20px; }
+  .beam {
+    width:420px; height:8px; background:#444759; border-radius:4px; position:relative;
+    transition: transform .4s ease; transform-origin:center;
+  }
+  .fulcrum {
+    width:0; height:0; border-left:16px solid transparent; border-right:16px solid transparent;
+    border-bottom:26px solid #444759; margin-top:-2px;
+  }
+  .pans { display:flex; justify-content:space-between; width:460px; margin-top:6px; }
+  .pan {
+    width:210px; min-height:120px; background:#20222b; border:2px dashed #444759; border-radius:8px;
+    padding:10px; display:flex; flex-direction:column; gap:8px;
+  }
+  .pan .panTitle { font-size:8px; color:#ffd76b; text-align:center; margin-bottom:4px; }
+  .pan.over { border-color:#5ad1ff; }
+
+  .bigBtn {
+    font-family:inherit; font-size:9px; padding:12px 20px; margin-top:18px;
+    background:#5ad1ff; color:#0a1220; border:none; border-radius:6px; cursor:pointer;
+    box-shadow:0 4px 0 #2a8bb3;
+  }
+  .bigBtn:disabled { background:#3a3d47; color:#666; box-shadow:0 4px 0 #222; cursor:not-allowed; }
+  .bigBtn:not(:disabled):active { box-shadow:0 1px 0 #2a8bb3; transform:translateY(3px); }
+  .nextWrap { display:none; text-align:center; margin-top:20px; }
+  .nextWrap.show { display:block; animation: fadeIn .3s; }
+  @keyframes fadeIn { from{opacity:0; transform:translateY(6px);} to{opacity:1; transform:translateY(0);} }
+  .closeBtn {
+    position:fixed; top:18px; right:22px; font-family:inherit; font-size:8px;
+    background:none; border:2px solid #444759; color:#9aa0ad; border-radius:6px; padding:8px 12px; cursor:pointer;
+  }
+  .summary { font-size:9px; line-height:2.2; color:#e9e9ef; }
+  .summary .ok { color:#2ecf7a; }
+
+html,body{overflow:auto;min-height:100%;height:auto}body{min-height:100vh}#app{min-height:100vh;flex-direction:column;padding:20px 0;gap:12px}#gameWrap{max-width:100%;padding:12px}#topbar{width:min(960px,calc(100vw - 40px));gap:15px}#dialogueBox{flex-direction:column;cursor:pointer;max-height:75%;overflow:auto}#dialogueBox .txt{font:15px/1.6 Arial,sans-serif}#officeActions{display:none;flex-wrap:wrap;justify-content:center;gap:8px;padding:0 20px;max-width:1000px}body:has(#gameWrap[style*="flex"]) #officeActions{display:flex}.touch-pad{display:none;gap:8px;flex-wrap:wrap;justify-content:center;padding:0 20px}.touch-pad button{padding:13px 18px;background:#252b39;color:#fff;border:1px solid #667085;touch-action:none;border-radius:5px}body:has(#gameWrap[style*="flex"]) .touch-pad{display:flex}.choice-btn{padding:10px 13px;background:#282d3b;color:#e9e9ef;border:1px solid #65718a;border-radius:5px;font:14px/1.4 Arial,sans-serif;cursor:pointer;margin:4px}.choice-btn:hover,.chip:hover{border-color:#ffd76b}.choice-btn:disabled{opacity:.65;cursor:default}.choice-btn.right{background:#1d4b39;color:#d0ffe5}button:focus-visible,[tabindex]:focus-visible,textarea:focus-visible{outline:3px solid #ffd76b;outline-offset:4px}#computerOverlay{padding-top:65px}.brief{width:100%;max-width:920px;margin:15px 0 22px;padding:15px 20px;border:1px solid #555a69;background:#171922;font:15px/1.65 Arial,sans-serif}.brief summary{cursor:pointer;color:#ffd76b}.panelCard p.desc,.crumb{font:15px/1.65 Arial,sans-serif!important}.tabs{flex-wrap:wrap;justify-content:center}.tabBtn{font-size:9px}.diagBox{font-family:inherit;color:#fff;cursor:pointer;display:flex;flex-direction:column}.diagBox .slot{font:14px/1.6 Arial,sans-serif;display:flex}.diagBox .label{line-height:1.7}.chip{font:15px/1.55 Arial,sans-serif;max-width:280px;text-align:left;cursor:pointer}.chip.selected{outline:2px solid #ffd76b}.exercise-feedback{font:15px/1.7 Arial,sans-serif;color:#c5e6da;padding:12px 0;min-height:30px}.evidence-card,.priority-card{border:1px solid #3c4355;padding:15px;margin:12px 0;border-radius:5px;font:16px/1.6 Arial,sans-serif}.priority-card{width:100%;max-width:420px}.evidence-card p,.priority-card p{margin:0 0 10px}.evidence-choices{display:flex;flex-wrap:wrap}.evidence-card .exercise-feedback{margin:0;padding-bottom:0}.pans{width:100%;gap:20px}.pan{width:50%}.panTitle{line-height:1.8}.placed{font:14px/1.6 Arial,sans-serif;border-top:1px solid #3d4657;padding-top:10px}#balanceBank{margin-top:20px}#tab3 label{font:15px/1.7 Arial,sans-serif}#draftText{display:block;width:100%;padding:15px;background:#10121a;color:#f5f5f8;border:1px solid #7c879b;font:16px/1.7 Arial,sans-serif;margin-top:8px;user-select:text}.selfchecks{font:15px/1.6 Arial,sans-serif;margin:15px 0}.selfchecks label{display:block;padding:7px 0}.selfchecks input{margin-right:8px;min-width:18px;min-height:18px}#modelText{font:15px/1.65 Arial,sans-serif;white-space:pre-wrap;padding:20px;background:#252b36;border:1px solid #59687b;user-select:text}.closeBtn{background:#0b0c10;z-index:80}#charSelect h1{line-height:1.6;text-align:center}.brief p{user-select:text}@media(max-width:600px){#charSelect{padding:15px;gap:15px}.picker{gap:12px}.charCard{width:135px}.beam{width:240px}#dialogueBox{left:5px;right:5px;bottom:5px;padding:10px}.panelCard{padding:16px}.pans{flex-direction:column}.pan{width:100%;min-height:80px}#computerOverlay h2{font-size:12px}.crumb{text-align:center}.diagram{flex-direction:column}.chip{max-width:100%;width:100%}.tabBtn{padding:10px 8px;font-size:8px}.closeBtn{top:8px;right:8px}}@media(prefers-reduced-motion:reduce){*{animation:none!important;transition:none!important}}
+
+[hidden]{display:none!important}.campaign-bar{width:min(1000px,calc(100vw - 30px));display:flex;gap:20px;justify-content:space-between;align-items:center;border-bottom:2px solid #414959;padding:10px 0}.campaign-bar>div>span{font-size:10px;color:#ffd76b;line-height:1.8}.campaign-bar p{font:14px/1.5 Arial,sans-serif;margin:6px 0}.campaign-bar button span{display:block;font-size:11px;color:#bed2e5;margin-top:4px}.levelRoutes{display:flex;flex-wrap:wrap;justify-content:center;gap:8px;max-width:1000px;margin:8px}.level-card{font:14px/1.5 Arial,sans-serif;color:#dce5f5;background:#252b36;border:1px solid #65718a;border-radius:5px;padding:10px 15px;cursor:pointer}.level-card.current{border:2px solid #ffd76b;color:#ffd76b}.level-card:disabled{opacity:.45;cursor:not-allowed}.reward-status{font:14px/1.6 Arial,sans-serif;color:#8ce8b5;min-height:24px;text-align:center;margin:0;padding:0 15px}#memoryBank{position:fixed;inset:0;z-index:120;background:#0b0c10ed;overflow:auto;padding:20px;user-select:text}.bank-sheet{max-width:950px;margin:0 auto;background:#171c26;border:2px solid #68738b;border-radius:10px;padding:30px;color:#e9e9ef;font:16px/1.7 Arial,sans-serif}.bank-sheet h2{font-family:'Press Start 2P',monospace;font-size:17px;line-height:1.8;color:#ffd76b}.bank-close{float:right}.bank-small{font-size:13px;color:#c4c7d1}.memory-level{border-top:1px solid #566173;padding:18px 0}.memory-level h3{font-size:20px;color:#f3dca8}.badgeShelf{display:grid;grid-template-columns:repeat(4,1fr);gap:10px}.memory-badge{padding:16px 12px;border:1px dashed #677084;border-radius:8px;background:#212734;color:#aab1c0}.memory-badge strong{display:block;font-size:14px}.memory-badge span{display:block;font-size:12px;line-height:1.5;margin-top:8px}.memory-badge.earned{color:#ffdc8d;background:#3b3222;border:2px solid #b48a45}.memory-level pre{white-space:pre-wrap;font:15px/1.7 Arial,sans-serif;padding:15px;background:#0f131d}.memory-level summary{cursor:pointer;color:#c4dfff}#collectionBadge{padding:20px;border:2px solid #ffd76b;background:#3f3421;color:#ffd76b}#resetConfirm{padding:15px;border:1px solid #d08080;margin-top:18px}.bank-sheet #storageStatus{color:#a6d2ef;font-size:13px}#computerOverlay .campaign-status{font-size:10px}@media(max-width:650px){.campaign-bar{align-items:flex-start;gap:8px}.campaign-bar>div>span{font-size:8px}.campaign-bar p{font-size:12px}.campaign-bar .choice-btn{font-size:12px}.badgeShelf{grid-template-columns:1fr 1fr}.bank-sheet{padding:18px}.bank-close{float:none}.level-card{font-size:12px;padding:8px}.bank-sheet h2{font-size:14px}}
+</style>
+</head>
+<body>
+<div id="app"><div class="campaign-bar"><div><span id="campaignStatus"></span><p id="levelFocus"></p></div><button class="choice-btn" data-open-bank>Memory Bank <span id="bankCount"></span></button></div>
+<div class="levelRoutes" aria-label="Level selection"></div>
+<p id="rewardStatus" role="status" class="reward-status"></p>
+<div id="memoryBank" role="dialog" aria-modal="true" aria-labelledby="bankTitle" hidden><div class="bank-sheet"><button class="choice-btn bank-close" id="closeBank">Close Memory Bank ✕</button><h2 id="bankTitle">YOUR MEMORY BANK</h2><p>Gather notes. Practice the skill. Keep the work.</p><p id="storageStatus" role="status"></p><p class="bank-small">Badges record completion of practice and self-review. They are not credentials or automated judgments of writing quality. Saved drafts stay in this browser when storage is available; do not enter confidential information.</p><div id="collectionBadge" hidden>◆ BEFORE YOU HIT SEND — Three-level collection complete</div><div id="bankContents"></div><button class="bigBtn" id="exportBank">Download my Memory Bank ↓</button><button class="choice-btn" id="resetBank">Reset progress</button><div id="resetConfirm" hidden><p>Delete this browser’s saved notes, badges, and drafts? Download your Memory Bank first if you want to keep a copy.</p><button class="choice-btn" id="confirmReset">Delete saved progress</button><button class="choice-btn" id="cancelReset">Keep my progress</button></div></div></div>
+
+
+  <!-- CHARACTER SELECT -->
+  <div id="charSelect">
+    <h1>OFFICE HOURS</h1>
+    <p class="sub">BEFORE YOU HIT SEND<br>Gather the facts. Know your reader. Make a recommendation.<br><span style="color:#c9ac89">Three levels · Three workplace challenges · One growing collection</span></p>
+    <div class="picker">
+      <div class="charCard" data-char="man">
+        <canvas width="64" height="64"></canvas>
+        <div class="name">Alex</div>
+        <div class="role">Project Coordinator</div>
+      </div>
+      <div class="charCard" data-char="woman">
+        <canvas width="64" height="64"></canvas>
+        <div class="name">Jordan</div>
+        <div class="role">Project Coordinator</div>
+      </div>
+    </div>
+    <button id="startBtn" disabled>Explore the Office</button><button class="choice-btn" id="quickStart">Skip exploration — try the writing desk</button><p class="sub">Copper Comma · Portfolio prototype<br>No cloud knowledge required. Try the desk for a shorter visit.</p>
+  </div>
+
+  <!-- GAME -->
+  <div id="gameWrap">
+    <div id="topbar">
+      <div class="hint">Move: <b>Arrows / WASD</b> &nbsp; Talk / Use: <b>E</b></div>
+      <div id="inventory">
+        <div class="invSlot" id="invSecurity" title="Pilot evidence">E</div>
+        <div class="invSlot" id="invReliability" title="Delivery plan">P</div>
+        <div class="invSlot" id="invCost" title="Decision context">D</div>
+      </div>
+    </div>
+    <div id="canvasFrame">
+      <canvas id="game" width="320" height="192" tabindex="0" aria-label="Office exploration. Move with arrow keys or use the conversation buttons below."></canvas>
+      <div id="prompt"></div>
+      <div id="toast"></div>
+      <div id="dialogueBox">
+        <div class="who"></div>
+        <div class="txt"></div>
+        <div class="adv">▶ press E or click to continue</div>
+      </div>
+    </div>
+  </div>
+
+<div id="officeActions"><button class="choice-btn" data-talk="evidence">Talk to Priya</button><button class="choice-btn" data-talk="plan">Talk to Marcus</button><button class="choice-btn" data-talk="decision">Talk to Elena</button><button class="choice-btn" id="deskLink">Use writing desk</button><button class="choice-btn" id="shortRoute">Collect brief &amp; try desk</button></div><div class="touch-pad" aria-label="Movement controls"><button data-key="ArrowLeft" aria-label="Move left">←</button><button data-key="ArrowUp" aria-label="Move up">↑</button><button data-key="ArrowDown" aria-label="Move down">↓</button><button data-key="ArrowRight" aria-label="Move right">→</button><button data-key="KeyE">Talk / Next</button></div>
+  <!-- COMPUTER OVERLAY -->
+  <div id="computerOverlay" role="dialog" aria-modal="true" aria-label="Writing desk">
+    <button class="closeBtn" id="closeComputer">✕ Back to office</button>
+    <h2>THE WRITING DESK</h2><div class="crumb">Northline Services · Fictional workplace scenario · Ungraded practice</div>
+    <details class="brief"><summary>Read the project brief</summary><p id="scenarioBrief"></p><p><b>Your role:</b> Project coordinator. <span id="readerTask"></span></p></details>
+    <div class="tabs" role="tablist" aria-label="Practice stations"><button class="tabBtn active" role="tab" data-tab="0">1. Know Your Reader</button><button class="tabBtn" role="tab" data-tab="1">2. Check the Evidence</button><button class="tabBtn" role="tab" data-tab="2">3. Make It Concise</button><button class="tabBtn" role="tab" data-tab="3">4. Write the Update</button></div>
+    <div class="tabPanel active" id="tab0" role="tabpanel"><div class="panelCard"><h3>What does this reader need first?</h3><p class="desc">All three readers may need context. Match each message to the reader whose immediate need it best serves. Select a message, then select a reader.</p><div class="diagram"><button class="diagBox" data-id="sponsor"><span class="label">Project sponsor</span><span class="slot"></span></button><button class="diagBox" data-id="team"><span class="label">Delivery team</span><span class="slot"></span></button><button class="diagBox" data-id="pilot"><span class="label">Pilot participants</span><span class="slot"></span></button></div><div class="chipBank" id="chipBank"></div><p id="audienceFeedback" class="exercise-feedback" role="status"></p><div class="nextWrap" id="next0"><button class="bigBtn" id="nextBtn0">Next: Check the Evidence →</button></div></div></div>
+    <div class="tabPanel" id="tab1" role="tabpanel"><div class="panelCard"><h3>Evidence, assumption, or recommendation?</h3><p class="desc">A reliable update distinguishes what happened from what someone predicts or proposes. Classify each statement.</p><div id="evidenceCards"></div><div class="nextWrap" id="next1"><button class="bigBtn" id="nextBtn1">Next: Make It Concise →</button></div></div></div>
+    <div class="tabPanel" id="tab2" role="tabpanel"><div class="panelCard"><h3>What belongs in this message?</h3><p class="desc">Keep the information needed for this reader’s next decision or action. Leave unrelated detail in working notes. The scale is a visual metaphor; it does not score the importance of individual facts.</p><div class="scaleWrap"><div class="beam" id="beam"></div><div class="fulcrum"></div></div><div class="pans"><div class="pan" data-side="keep"><div class="panTitle">INCLUDE IN THE UPDATE</div></div><div class="pan" data-side="remove"><div class="panTitle">LEAVE IN WORKING NOTES</div></div></div><div class="chipBank" id="balanceBank"></div><p id="priorityFeedback" class="exercise-feedback" role="status"></p><div id="balanceResult" style="display:none" class="exercise-feedback"></div><div class="nextWrap" id="next2"><button class="bigBtn" id="nextBtn2">Next: Write the Update →</button></div></div></div>
+    <div class="tabPanel" id="tab3" role="tabpanel"><div class="panelCard"><h3>Now make the recommendation</h3><p class="desc" id="writingPrompt"></p><label for="draftText">Your update</label><textarea id="draftText" rows="9" placeholder="Subject: …&#10;&#10;I recommend …"></textarea><div class="selfchecks"><p>Review your draft yourself:</p><label><input class="selfcheck" type="checkbox"><span> My recommendation is clear for the sponsor.</span></label><label><input class="selfcheck" type="checkbox"><span> I distinguish the pilot evidence from assumptions.</span></label><label><input class="selfcheck" type="checkbox"><span> I identify the action, owner, and deadline.</span></label><label><input class="selfcheck" type="checkbox"><span> I preserve uncertainty and explain the fallback.</span></label></div><button id="modelBtn" class="choice-btn" aria-expanded="false" aria-controls="modelText">Compare with a sample response</button><pre id="modelText" hidden></pre><p class="exercise-feedback" id="draftGate" role="status"></p><button class="bigBtn" id="finishBtn" disabled>Complete level & save draft</button><button class="choice-btn" id="downloadDraft" hidden>Download this draft ↓</button><button class="bigBtn" id="nextLevelBtn" hidden>Next level →</button><button class="choice-btn" data-open-bank>Open Memory Bank</button><p id="finalFeedback" class="exercise-feedback" role="status"></p><p class="desc">No AI grading or automated writing-quality score is used. Progress, notes, and drafts are saved on this browser when storage is available. Open the Memory Bank to download your collection or reset saved progress.</p></div></div>
+  </div>
+
+</div>
+
+<script>
+/* ============================================================
+   PIXEL CHARACTER RENDERING
+   ============================================================ */
+const PALETTES = {
+  man:   { skin:'#e8b98d', hair:'#3b2a1e', shirt:'#2b3a67', pants:'#22242c', longHair:false },
+  woman: { skin:'#e8b98d', hair:'#4a2439', shirt:'#8a2f4b', pants:'#22242c', longHair:true  },
+  npc1:  { skin:'#d9a679', hair:'#1c1c1c', shirt:'#1f8a7a', pants:'#20222b', longHair:true  }, // Priya - security
+  npc2:  { skin:'#e8b98d', hair:'#6b4423', shirt:'#c9752f', pants:'#20222b', longHair:false }, // Marcus - reliability
+  npc3:  { skin:'#c98a5e', hair:'#111111', shirt:'#7048a8', pants:'#20222b', longHair:true  }, // Elena - cost
+};
+
+function drawChar(ctx, cx, cy, palette, dir, frame){
+  const w=10,h=16;
+  const x = Math.round(cx - w/2), y = Math.round(cy - h);
+  const legLift = frame ? 1 : 0;
+  ctx.fillStyle = palette.pants;
+  ctx.fillRect(x+1, y+h-5+ (dir!=='idle'? legLift:0), 3, 5);
+  ctx.fillRect(x+w-4, y+h-5+ (dir!=='idle'? (1-legLift):0), 3, 5);
+  ctx.fillStyle = palette.shirt;
+  ctx.fillRect(x, y+5, w, 6);
+  ctx.fillStyle = palette.skin;
+  ctx.fillRect(x+1, y, w-2, 6);
+  ctx.fillStyle = palette.hair;
+  if(palette.longHair){
+    ctx.fillRect(x, y, w, 3);
+    ctx.fillRect(x, y, 2, 7);
+    ctx.fillRect(x+w-2, y, 2, 7);
+  } else {
+    ctx.fillRect(x, y, w, 2);
+  }
+  ctx.fillStyle = '#1a1a1a';
+  if(dir==='down'){ ctx.fillRect(x+2,y+3,1,1); ctx.fillRect(x+w-3,y+3,1,1); }
+  else if(dir==='left'){ ctx.fillRect(x+1,y+3,1,1); }
+  else if(dir==='right'){ ctx.fillRect(x+w-2,y+3,1,1); }
+}
+
+/* preview canvases on char select */
+document.querySelectorAll('.charCard canvas').forEach(cv=>{
+  const card = cv.closest('.charCard');
+  const pal = PALETTES[card.dataset.char];
+  const ctx = cv.getContext('2d');
+  ctx.imageSmoothingEnabled=false;
+  ctx.save(); ctx.scale(3,3);
+  drawChar(ctx, 32/3, 40/3, pal, 'down', false);
+  ctx.restore();
+});
+
+let chosenChar = null;
+document.querySelectorAll('.charCard').forEach(card=>{
+  card.addEventListener('click', ()=>{
+    document.querySelectorAll('.charCard').forEach(c=>c.classList.remove('selected'));
+    card.classList.add('selected');
+    chosenChar = card.dataset.char;
+    document.getElementById('startBtn').disabled=false;
+  });
+});
+
+document.getElementById('startBtn').addEventListener('click', ()=>{
+  document.getElementById('charSelect').style.display='none';
+  document.getElementById('gameWrap').style.display='flex';
+  startGame(chosenChar);
+});
+
+/* ============================================================
+   OFFICE WORLD
+   ============================================================ */
+function startGame(charType){
+  const canvas = document.getElementById('game');
+  const ctx = canvas.getContext('2d');
+  ctx.imageSmoothingEnabled=false;
+  canvas.style.width='min(960px, calc(100vw - 40px))';
+  canvas.style.height='auto';
+
+  const W=320,H=192;
+  const BOUND = {x1:10,y1:10,x2:W-10,y2:H-10};
+
+  const desks = [
+    {x:40,y:36,w:34,h:18,color:'#5a4632'},     // Priya's desk
+    {x:144,y:36,w:34,h:18,color:'#5a4632'},    // Marcus's desk
+    {x:246,y:36,w:34,h:18,color:'#5a4632'},    // Elena's desk
+    {x:246,y:140,w:34,h:18,color:'#3a5a6b', mine:true}, // player's own desk
+  ];
+  const cooler = {x:200,y:104,w:14,h:20};
+
+  const obstacles = [...desks, cooler];
+
+  const npcs = [
+ {id:'evidence',name:'Priya · Customer Operations',pal:PALETTES.npc1,x:57,y:66,lines:["You’re preparing the sponsor’s update on our new support form? Here are the pilot results.","We tested 12 submissions. Ten arrived correctly; two were missing account IDs.","We recovered both requests manually. Each took 10 minutes. That is observed evidence, not a prediction about every future request.","I can make the account-ID field mandatory before the next retest."],evidence:{label:'12 pilot submissions; 2 missing account IDs; 10 minutes per recovery',pillar:'Evidence'}},
+ {id:'plan',name:'Marcus · Delivery Lead',pal:PALETTES.npc2,x:161,y:66,lines:["The wider rollout is scheduled for Monday at 9 a.m.","Priya can make the account-ID field mandatory and retest the two affected cases by Friday noon.","If those tests fail, we can continue the pilot rather than expand.","The delivery team needs a named owner, a next action, and a deadline. A vague ‘we’re working on it’ won’t help."],evidence:{label:'Priya: required account-ID field and retest by Friday noon',pillar:'Plan'}},
+ {id:'decision',name:'Elena · Project Sponsor',pal:PALETTES.npc3,x:263,y:66,lines:["I need a recommendation on the Monday rollout by Friday at 3 p.m.","Start with what you recommend. Then give me the evidence, the condition for proceeding, and the fallback.","The pilot has only 12 submissions. Please don’t turn a small sample into a guarantee.","Keep detailed working notes available, but help me see the decision without searching through a transcript."],evidence:{label:'Sponsor needs go/no-go Friday 3 p.m.; preserve uncertainty',pillar:'Decision'}}
+ ];
+  const interactables = [
+    { type:'npc', ref:npcs[0], rect:desks[0] },
+    { type:'npc', ref:npcs[1], rect:desks[1] },
+    { type:'npc', ref:npcs[2], rect:desks[2] },
+    { type:'cooler', rect:cooler,
+      lines:["The water cooler hums quietly.","Someone taped a sign above it: \"Before you hit send, ask what your reader needs next.\""]},
+    { type:'computer', ref:desks.find(d=>d.mine), rect:desks.find(d=>d.mine) },
+  ];
+
+  const player = { x:110, y:160, dir:'down', moving:false, frame:false, animTimer:0, pal:PALETTES[charType] };
+  const evidenceCollected = {};
+
+  const keys = new Set();
+  window.addEventListener('keydown', e=>{
+    if(!document.getElementById('memoryBank').hidden || document.getElementById('computerOverlay').style.display==='flex' || /INPUT|TEXTAREA|SELECT/.test(document.activeElement.tagName))return;
+    if(['ArrowUp','ArrowDown','ArrowLeft','ArrowRight',' '].includes(e.key)) e.preventDefault();
+    keys.add(e.code);
+    if(e.code==='KeyE' || e.code==='Enter' || e.code==='Space'){ handleInteract(); }
+  });
+  window.addEventListener('keyup', e=> keys.delete(e.code));
+
+  function rectsOverlap(a,b){ return a.x < b.x+b.w && a.x+a.w > b.x && a.y < b.y+b.h && a.y+a.h > b.y; }
+  function collides(px,py){
+    const box = {x:px-5, y:py-14, w:10, h:14};
+    if(box.x<BOUND.x1||box.x+box.w>BOUND.x2||box.y<BOUND.y1||box.y+box.h>BOUND.y2) return true;
+    for(const o of obstacles){ if(rectsOverlap(box,o)) return true; }
+    return false;
+  }
+  /* shortest distance from a point to the edge of a rectangle — lets interaction
+     work from any approach direction, not just the side it was designed for */
+  /* shortest distance between the player's actual collision box and an
+     interactable's rectangle — using the box (not just the foot point) keeps
+     the reachable zone symmetric no matter which side you approach from */
+  function distToRect(px,py,r){
+    const box = {x:px-5, y:py-14, w:10, h:14};
+    const dx = Math.max(r.x-(box.x+box.w), 0, box.x-(r.x+r.w));
+    const dy = Math.max(r.y-(box.y+box.h), 0, box.y-(r.y+r.h));
+    return Math.hypot(dx,dy);
+  }
+
+  let nearest = null;
+  let dialogueActive = false, dialogueLines=[], dialogueIndex=0, dialogueOnDone=null;
+
+  const REACH = 22;
+  function findNearest(){
+    let best=null, bestD=1e9;
+    for(const it of interactables){
+      const d = distToRect(player.x, player.y, it.rect);
+      if(d<REACH && d<bestD){ bestD=d; best=it; }
+    }
+    return best;
+  }
+
+  function showToast(msg){
+    const t=document.getElementById('toast');
+    t.textContent = msg; t.classList.add('show');
+    clearTimeout(showToast._t);
+    showToast._t = setTimeout(()=>t.classList.remove('show'), 2200);
+  }
+
+  function addEvidence(ev){
+    if(window.__bankClue)window.__bankClue(ev);
+    if(evidenceCollected[ev.pillar]) return;
+    evidenceCollected[ev.pillar] = ev;
+    const map = {Evidence:'invSecurity', Plan:'invReliability', Decision:'invCost'};
+    const el = document.getElementById(map[ev.pillar]);
+    if(el) el.classList.add('filled');
+    showToast('+ Evidence: '+ev.label);
+  }
+
+  function openDialogue(name, lines, onDone){
+    dialogueActive = true;
+    dialogueLines = lines; dialogueIndex = 0; dialogueOnDone = onDone;
+    const box = document.getElementById('dialogueBox');
+    box.style.display='flex';
+    box.querySelector('.who').textContent = name || '';
+    box.querySelector('.who').style.display = name ? 'block':'none';
+    box.querySelector('.txt').textContent = dialogueLines[0];
+  }
+  function advanceDialogue(){
+    dialogueIndex++;
+    if(dialogueIndex >= dialogueLines.length){
+      document.getElementById('dialogueBox').style.display='none';
+      dialogueActive = false;
+      if(dialogueOnDone) dialogueOnDone();
+      return;
+    }
+    document.getElementById('dialogueBox').querySelector('.txt').textContent = dialogueLines[dialogueIndex];
+  }
+  document.getElementById('dialogueBox').addEventListener('click', ()=>{ if(dialogueActive) advanceDialogue(); });
+
+  function handleInteract(){
+    if(dialogueActive){ advanceDialogue(); return; }
+    if(!nearest) return;
+    if(nearest.type==='npc'){
+      const n = nearest.ref;
+      openDialogue(n.name, n.lines, ()=> addEvidence({...n.evidence}));
+    } else if(nearest.type==='cooler'){
+      openDialogue(null, nearest.lines, null);
+    } else if(nearest.type==='computer'){
+      const count = Object.keys(evidenceCollected).length;
+      if(count < 3){
+        openDialogue(null, ["You've gathered "+count+"/3 pieces of information so far.","Talk to all three colleagues before preparing the update."], null);
+      } else {
+        openComputer();
+      }
+    }
+  }
+
+  let last = performance.now();
+  function loop(now){
+    const dt = Math.min(0.05, (now-last)/1000); last = now;
+    if(!dialogueActive && document.getElementById('computerOverlay').style.display !== 'flex'){
+      update(dt);
+    }
+    render();
+    requestAnimationFrame(loop);
+  }
+
+  function update(dt){
+    let dx=0, dy=0;
+    if(keys.has('ArrowLeft')||keys.has('KeyA')) dx-=1;
+    if(keys.has('ArrowRight')||keys.has('KeyD')) dx+=1;
+    if(keys.has('ArrowUp')||keys.has('KeyW')) dy-=1;
+    if(keys.has('ArrowDown')||keys.has('KeyS')) dy+=1;
+
+    if(dx!==0||dy!==0){
+      const len=Math.hypot(dx,dy); dx/=len; dy/=len;
+      const speed=70;
+      const nx = player.x + dx*speed*dt;
+      const ny = player.y + dy*speed*dt;
+      const alreadyStuck = collides(player.x, player.y);
+      if(alreadyStuck || !collides(nx, player.y)) player.x = nx;
+      if(alreadyStuck || !collides(player.x, ny)) player.y = ny;
+      player.moving = true;
+      if(Math.abs(dx) > Math.abs(dy)) player.dir = dx>0 ? 'right':'left';
+      else player.dir = dy>0 ? 'down':'up';
+      player.animTimer += dt;
+      if(player.animTimer > 0.16){ player.animTimer=0; player.frame=!player.frame; }
+    } else {
+      player.moving = false;
+    }
+    nearest = findNearest();
+  }
+
+  function drawDesk(d){
+    ctx.fillStyle = d.color;
+    ctx.fillRect(d.x, d.y, d.w, d.h);
+    ctx.fillStyle = 'rgba(0,0,0,.25)';
+    ctx.fillRect(d.x, d.y+d.h-3, d.w, 3);
+    const glow = d.mine ? (0.55 + 0.35*Math.sin(performance.now()/300)) : 0.9;
+    ctx.fillStyle = d.mine ? `rgba(120,220,255,${glow})` : '#274a55';
+    ctx.fillRect(d.x+6, d.y-8, d.w-12, 8);
+  }
+
+  function render(){
+    ctx.fillStyle = '#26282f';
+    ctx.fillRect(0,0,W,H);
+    for(let ty=1; ty<H/16-1; ty++){
+      for(let tx=1; tx<W/16-1; tx++){
+        ctx.fillStyle = (tx+ty)%2===0 ? '#2f323b' : '#2a2c34';
+        ctx.fillRect(tx*16, ty*16, 16,16);
+      }
+    }
+    ctx.strokeStyle='#3a3d47'; ctx.lineWidth=6;
+    ctx.strokeRect(3,3,W-6,H-6);
+
+    // cooler
+    ctx.fillStyle='#3d5a63'; ctx.fillRect(cooler.x,cooler.y,cooler.w,cooler.h);
+    ctx.fillStyle='#8fd8ea'; ctx.fillRect(cooler.x+2,cooler.y+2,cooler.w-4,7);
+
+    desks.forEach(drawDesk);
+
+    npcs.forEach(n=> drawChar(ctx, n.x, n.y+16, n.pal, 'down', false));
+
+    drawChar(ctx, player.x, player.y, player.pal, player.moving?player.dir:'idle', player.frame);
+
+    const promptEl = document.getElementById('prompt');
+    if(nearest && !dialogueActive){
+      const r = nearest.rect;
+      const anchorX = r.x + r.w/2, anchorY = r.y - 4;
+      const rect = canvas.getBoundingClientRect();
+      const scaleX = rect.width / W, scaleY = rect.height / H;
+      const px = anchorX * scaleX, py = anchorY * scaleY;
+      promptEl.style.left = px+'px';
+      promptEl.style.top = py+'px';
+      promptEl.style.display='block';
+      promptEl.textContent = nearest.type==='computer' ? 'E · Use computer' : 'E · Talk';
+    } else {
+      promptEl.style.display='none';
+    }
+  }
+
+  requestAnimationFrame((t)=>{ last=t; requestAnimationFrame(loop); });
+
+  /* expose evidence to computer overlay */
+  window.__getEvidence = () => evidenceCollected;
+  window.__officeTalk = id=>{const n=npcs.find(x=>x.id===id);if(n)openDialogue(n.name,n.lines,()=>addEvidence({...n.evidence}));};
+  window.__officeDesk = ()=>{if(Object.keys(evidenceCollected).length<3)openDialogue('Your writing desk',['Speak to all three colleagues first. Use Talk / Next or click this dialogue to advance.'],null);else openComputer();};
+  window.__gatherAll = ()=>npcs.forEach(n=>addEvidence({...n.evidence}));
+  window.__loadOfficeLevel = ()=>{const l=window.__currentMission();l.npc.forEach((c,i)=>{Object.assign(npcs[i],{name:c.name,lines:c.lines,evidence:{label:c.note,pillar:['Evidence','Plan','Decision'][i]}});});Object.keys(evidenceCollected).forEach(k=>delete evidenceCollected[k]);['invSecurity','invReliability','invCost'].forEach(id=>document.getElementById(id).classList.remove('filled'));dialogueActive=false;document.getElementById('dialogueBox').style.display='none';window.__currentClues().forEach(c=>addEvidence({label:c.note,pillar:c.kind}));};
+  if(window.__currentMission)window.__loadOfficeLevel();
+}
+
+/* ============================================================
+   COMPUTER OVERLAY — MINIGAMES
+   ============================================================ */
+const overlay = document.getElementById('computerOverlay');
+const writingState={audience:new Set(),evidence:new Set(),priority:new Set(),selection:null,final:false};
+let brief='Northline Services is piloting a new support-request form. Of 12 pilot submissions, 10 arrived correctly and 2 were missing account IDs. Both were recovered manually, taking 10 minutes each. A wider rollout is planned for Monday at 9 a.m. The sponsor needs a recommendation by Friday at 3 p.m. Operations can add a required account-ID field and retest the two affected cases by Friday noon. If retesting fails, the pilot can continue instead of widening the rollout.';
+let audienceItems=[{id:'sponsor',text:'Recommend widening the rollout only after Friday’s retest confirms that the account-ID issue is fixed.',why:'The sponsor needs a recommendation and the condition for making the decision.'},{id:'team',text:'Priya will make the account-ID field mandatory and rerun the two failed cases by Friday noon.',why:'The delivery team needs the owner, action, and deadline.'},{id:'pilot',text:'Please include your account ID when submitting a request. Contact support if you cannot find it.',why:'Pilot participants need a clear instruction and a route to help.'}];
+let evidenceItems=[{text:'Two of the 12 pilot submissions were missing account IDs.',kind:'Observed fact',why:'This is a reported result from the pilot, with a defined sample.'},{text:'All customers will prefer the new form.',kind:'Unsupported assumption',why:'A small internal pilot provides no evidence about every customer’s preference.'},{text:'Make the account-ID field mandatory and retest before expanding.',kind:'Recommendation',why:'This proposes an action. It is informed by evidence but is not itself an observed result.'},{text:'Manual recovery took 10 minutes for each affected request.',kind:'Observed fact',why:'The team reported the recovery time. Keep its scope tied to these two requests.'},{text:'The rollout will definitely fail on Monday.',kind:'Unsupported assumption',why:'The pilot identified a risk, not certainty about the rollout’s future outcome.'},{text:'If retesting fails, continue the pilot instead of expanding on Monday.',kind:'Recommendation',why:'This is a proposed contingency tied to a decision condition.'}];
+let priorityItems=[{text:'Two of 12 requests were missing account IDs; each took 10 minutes to recover.',side:'keep',why:'This is the core evidence and consequence behind the recommendation.'},{text:'Make the field mandatory and retest the two affected cases by Friday noon.',side:'keep',why:'The sponsor needs to know the proposed control and its timing.'},{text:'Confirm go/no-go by Friday at 3 p.m.; keep the pilot if the retest fails.',side:'keep',why:'This states the decision needed and the fallback plan.'},{text:'The team considered five different labels for the form’s submit button.',side:'remove',why:'This does not affect the current go/no-go decision. Retain it in working notes if useful.'},{text:'The original meeting invitation had a typo in its subject line.',side:'remove',why:'The typo has no bearing on the pilot evidence or recommendation.'},{text:'A complete transcript of every pilot planning conversation.',side:'remove',why:'Keep a link to supporting notes if needed. A full transcript obscures the decision.'}];
+function safe(s){return String(s).replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));}
+function announce(id,s){document.getElementById(id).textContent=s;}
+function openComputer(){overlay.style.display='flex';goToTab(0);buildDiagramGame();buildMatchGame();buildBalanceGame();refreshFinish();document.getElementById('closeComputer').focus();}
+document.getElementById('closeComputer').onclick=()=>{overlay.style.display='none';document.getElementById('deskLink').focus();};
+function goToTab(i){document.querySelectorAll('.tabBtn').forEach(b=>{b.classList.toggle('active',b.dataset.tab==i);b.setAttribute('aria-selected',String(b.dataset.tab==i));});document.querySelectorAll('.tabPanel').forEach(p=>p.classList.remove('active'));document.getElementById('tab'+i).classList.add('active');}
+document.querySelectorAll('.tabBtn').forEach(b=>b.onclick=()=>goToTab(b.dataset.tab));
+document.getElementById('nextBtn0').onclick=()=>goToTab(1);document.getElementById('nextBtn1').onclick=()=>goToTab(2);document.getElementById('nextBtn2').onclick=()=>goToTab(3);
+function markDone(i){if(window.__awardPractice)window.__awardPractice(i);document.querySelector('.tabBtn[data-tab="'+i+'"]').classList.add('done');document.getElementById('next'+i).classList.add('show');refreshFinish();}
+function buildDiagramGame(){
+ const bank=document.getElementById('chipBank');bank.innerHTML='';
+ audienceItems.forEach(a=>{if(writingState.audience.has(a.id))return;const b=document.createElement('button');b.type='button';b.className='chip';b.textContent=a.text;b.onclick=()=>{writingState.selection=a.id;bank.querySelectorAll('button').forEach(x=>x.classList.remove('selected'));b.classList.add('selected');announce('audienceFeedback','Message selected. Choose the reader who most needs this information.');};bank.appendChild(b);});
+ document.querySelectorAll('.diagBox').forEach(b=>{const a=audienceItems.find(x=>x.id===b.dataset.id);b.classList.toggle('correct',writingState.audience.has(a.id));b.querySelector('.slot').textContent=writingState.audience.has(a.id)?a.text:'Select a message, then choose this reader';b.onclick=()=>{if(!writingState.selection){announce('audienceFeedback','Select a message first.');return;}const chosen=audienceItems.find(x=>x.id===writingState.selection);if(chosen.id===a.id){writingState.audience.add(a.id);writingState.selection=null;buildDiagramGame();announce('audienceFeedback',chosen.why);if(writingState.audience.size===3)markDone(0);}else announce('audienceFeedback','That reader may value the context, but it is not their most immediate need. Consider who must decide, act, or use the form.');};});
+ if(writingState.audience.size===3)markDone(0);
+}
+function buildMatchGame(){const wrap=document.getElementById('evidenceCards');wrap.innerHTML='';evidenceItems.forEach((a,i)=>{const c=document.createElement('div');c.className='evidence-card';const p=document.createElement('p');p.textContent=a.text;c.appendChild(p);const choices=document.createElement('div');choices.className='evidence-choices';const feedback=document.createElement('p');feedback.className='exercise-feedback';feedback.setAttribute('role','status');['Observed fact','Unsupported assumption','Recommendation'].forEach(k=>{const b=document.createElement('button');b.className='choice-btn';b.textContent=k;b.disabled=writingState.evidence.has(i);b.onclick=()=>{if(k===a.kind){writingState.evidence.add(i);choices.querySelectorAll('button').forEach(x=>x.disabled=true);b.classList.add('right');feedback.textContent='Correct. '+a.why;if(writingState.evidence.size===evidenceItems.length)markDone(1);}else feedback.textContent='Reconsider: '+a.why;};choices.appendChild(b);});c.append(choices,feedback);if(writingState.evidence.has(i))feedback.textContent=a.kind+' — '+a.why;wrap.appendChild(c);});if(writingState.evidence.size===6)markDone(1);}
+function buildBalanceGame(){const bank=document.getElementById('balanceBank');bank.innerHTML='';document.querySelectorAll('.pan .placed').forEach(x=>x.remove());priorityItems.forEach((a,i)=>{if(writingState.priority.has(i)){const el=document.createElement('p');el.className='placed';el.textContent=a.text;document.querySelector('.pan[data-side="'+a.side+'"]').appendChild(el);return;}const card=document.createElement('div');card.className='priority-card';const p=document.createElement('p');p.textContent=a.text;card.appendChild(p);['keep','remove'].forEach(k=>{const b=document.createElement('button');b.className='choice-btn';b.textContent=k==='keep'?'Include':'Leave in working notes';b.onclick=()=>{if(a.side===k){writingState.priority.add(i);buildBalanceGame();announce('priorityFeedback',a.why);if(writingState.priority.size===6)markDone(2);}else announce('priorityFeedback','Try the other destination. '+a.why);};card.appendChild(b);});bank.appendChild(card);});const count=writingState.priority.size;document.getElementById('beam').style.transform='rotate('+(count<6?(count%2===0?-4:4):0)+'deg)';if(count===6){document.getElementById('balanceResult').style.display='block';document.getElementById('balanceResult').textContent='A balanced update preserves evidence, action, and uncertainty. “Concise” does not mean leaving out the risk or the decision needed.';markDone(2);}}
+function ready(){return writingState.audience.size===3&&writingState.evidence.size===6&&writingState.priority.size===6;}
+function refreshFinish(){const done=ready();document.getElementById('draftGate').textContent=done?'Practice complete. Draft your update, then use the self-review checklist.':'You can draft now. Complete all three practice stations before saving your final update.';document.getElementById('finishBtn').disabled=!(done&&document.getElementById('draftText').value.trim()&&[...document.querySelectorAll('.selfcheck')].every(x=>x.checked));}
+document.querySelectorAll('.selfcheck').forEach(b=>b.onchange=()=>{refreshFinish();if(window.__saveCampaign)window.__saveCampaign();});document.getElementById('draftText').oninput=()=>{refreshFinish();if(window.__saveCampaign)window.__saveCampaign();};
+let model='Subject: Decision needed Friday: support-form rollout\n\nI recommend expanding the rollout on Monday only if Friday’s retest confirms the account-ID issue is fixed. In the 12-request pilot, two submissions lacked account IDs; each took 10 minutes to recover manually.\n\nPriya will make the account-ID field mandatory and retest the two affected cases by Friday noon. Please confirm go/no-go by Friday at 3 p.m. If the retest fails, we recommend continuing the pilot rather than expanding. The pilot is small, so we will monitor results after any wider rollout.';
+document.getElementById('modelBtn').onclick=()=>{document.getElementById('modelText').hidden=!document.getElementById('modelText').hidden;document.getElementById('modelText').textContent=model;document.getElementById('modelBtn').setAttribute('aria-expanded',String(!document.getElementById('modelText').hidden));};
+document.getElementById('finishBtn').onclick=()=>{if(document.getElementById('finishBtn').disabled)return;if(window.__completeLevel)window.__completeLevel();};
+document.getElementById('scenarioBrief').textContent=brief;
+document.getElementById('quickStart').onclick=()=>{if(!chosenChar)chosenChar='man';document.getElementById('charSelect').style.display='none';document.getElementById('gameWrap').style.display='flex';startGame(chosenChar);if(window.__loadOfficeLevel)window.__loadOfficeLevel();window.__gatherAll();openComputer();};
+document.querySelectorAll('[data-talk]').forEach(b=>b.onclick=()=>window.__officeTalk&&window.__officeTalk(b.dataset.talk));document.getElementById('deskLink').onclick=()=>window.__officeDesk&&window.__officeDesk();
+document.querySelectorAll('.charCard').forEach(b=>{b.setAttribute('role','button');b.tabIndex=0;b.onkeydown=e=>{if(e.key==='Enter'||e.key===' '){e.preventDefault();b.click();}};});
+document.querySelectorAll('[data-key]').forEach(b=>{const key=b.dataset.key;b.onpointerdown=e=>{e.preventDefault();b.setPointerCapture(e.pointerId);window.dispatchEvent(new KeyboardEvent('keydown',{code:key,key:key}));};const up=()=>window.dispatchEvent(new KeyboardEvent('keyup',{code:key,key:key}));b.onpointerup=up;b.onpointercancel=up;b.onlostpointercapture=up;});
+window.addEventListener('keydown',e=>{if(e.key==='Escape'&&overlay.style.display==='flex')document.getElementById('closeComputer').click();});
+// Keep keyboard focus within the writing desk while its dialog is open.
+window.addEventListener('keydown',e=>{if(e.key!=='Tab'||overlay.style.display!=='flex'||!document.getElementById('memoryBank').hidden)return;const items=[...overlay.querySelectorAll('button:not(:disabled),input,textarea,summary,[tabindex="0"]')].filter(x=>x.getClientRects().length&&!x.closest('[hidden]'));if(!items.length)return;const first=items[0],last=items[items.length-1];if(e.shiftKey&&document.activeElement===first){e.preventDefault();last.focus();}else if(!e.shiftKey&&document.activeElement===last){e.preventDefault();first.focus();}});
+
+const EXTRA_LEVELS=[
+  {
+    "id": 2,
+    "title": "The Difficult Email",
+    "badge": "Trust Builder",
+    "focus": "Acknowledge a problem without blame or unsupported promises.",
+    "brief": "Northline Services promised a client printed workshop packs by Friday for a Monday workshop. A check of 40 sample packs found six missing a worksheet. The whole order contains 200 packs, but only the sample has been checked. Corrected digital materials can be ready Friday at 3 p.m. The printer’s current estimate for corrected printed packs is Monday; an exact arrival time is not confirmed. Marcus can send a confirmed print status update Friday at 4 p.m. The client must agree to use digital materials for the workshop. Write a client email that acknowledges the problem, proposes the workaround, and asks for that agreement without guaranteeing a delivery time.",
+    "reader": "Client workshop coordinator",
+    "task": "Write a client email that acknowledges the issue, offers a workable option, and confirms the next update.",
+    "labels": {
+      "sponsor": "Client coordinator",
+      "team": "Delivery team",
+      "pilot": "Account lead"
+    },
+    "prompt": "Write approximately 90–140 words to the client coordinator. Acknowledge the missed expectation, give only confirmed facts, propose the digital workaround, ask for agreement, and state the next update.",
+    "checks": [
+      "I acknowledge the problem and take ownership without blaming someone else.",
+      "I keep the sample result separate from what is unknown about the full order.",
+      "I explain the workaround and ask for the client’s agreement.",
+      "I state the next update without promising an unconfirmed delivery time."
+    ],
+    "npc": [
+      {
+        "name": "Priya · Quality Lead",
+        "lines": [
+          "We checked 40 sample workshop packs. Six were missing a worksheet.",
+          "The order has 200 packs. We have not inspected all 200, so don’t describe six as the total number affected.",
+          "I can finish corrected digital materials by Friday at 3 p.m."
+        ],
+        "note": "40 checked; 6 missing a worksheet; full 200-pack order not yet verified."
+      },
+      {
+        "name": "Marcus · Delivery Lead",
+        "lines": [
+          "We promised printed packs by Friday for the Monday workshop.",
+          "The printer now estimates Monday for corrected printed packs. No exact arrival time is confirmed.",
+          "I will send a confirmed print status update Friday at 4 p.m. Avoid promising delivery before the workshop."
+        ],
+        "note": "Print estimate Monday; exact arrival unconfirmed; status update Friday 4 p.m."
+      },
+      {
+        "name": "Elena · Account Lead",
+        "lines": [
+          "The client needs a workable plan, not the supplier’s entire email chain.",
+          "We can offer corrected digital materials Friday at 3 p.m., but the client must agree to use them.",
+          "Acknowledge the missed expectation. Ask for agreement and say when they will hear from us next."
+        ],
+        "note": "Offer digital workaround Friday 3 p.m.; client agreement required; acknowledge responsibility."
+      }
+    ],
+    "audience": [
+      {
+        "id": "sponsor",
+        "text": "I’m sorry we cannot meet the promised print delivery. May we send corrected digital materials Friday at 3 p.m. for your approval?",
+        "why": "The client needs acknowledgment and a workable option that respects their choice."
+      },
+      {
+        "id": "team",
+        "text": "Priya: finalize the digital pack by Friday at 3 p.m. Marcus: confirm print status and update the client at 4 p.m.",
+        "why": "The delivery team needs named owners, actions, and times."
+      },
+      {
+        "id": "pilot",
+        "text": "Please log the missed commitment and the agreed workaround so we can follow through consistently with the client.",
+        "why": "The account lead needs an accurate record of commitments and follow-through."
+      }
+    ],
+    "evidence": [
+      {
+        "text": "Six of the 40 checked packs were missing a worksheet.",
+        "kind": "Observed fact",
+        "why": "This is the sample result, with its scope made explicit."
+      },
+      {
+        "text": "Exactly 30 of the 200 packs are defective.",
+        "kind": "Unsupported assumption",
+        "why": "Extrapolating the sample does not establish the exact number in the whole order."
+      },
+      {
+        "text": "Offer corrected digital materials, subject to the client’s agreement.",
+        "kind": "Recommendation",
+        "why": "This proposes a response; the client has not yet accepted it."
+      },
+      {
+        "text": "The confirmed commitment to the client was print delivery by Friday.",
+        "kind": "Observed fact",
+        "why": "This is a documented commitment, even though the new estimate cannot meet it."
+      },
+      {
+        "text": "The printed packs will definitely arrive before Monday’s workshop.",
+        "kind": "Unsupported assumption",
+        "why": "The current estimate is Monday, with no confirmed arrival time."
+      },
+      {
+        "text": "Give the client another status update Friday at 4 p.m.",
+        "kind": "Recommendation",
+        "why": "This proposes a communication action backed by Marcus’s available update time."
+      }
+    ],
+    "priority": [
+      {
+        "text": "Acknowledge that the promised Friday print delivery cannot be met.",
+        "side": "keep",
+        "why": "The client needs direct acknowledgment of the changed commitment."
+      },
+      {
+        "text": "Offer corrected digital materials Friday at 3 p.m. and request agreement.",
+        "side": "keep",
+        "why": "This gives the client a concrete choice and an action to take."
+      },
+      {
+        "text": "State that print arrival remains unconfirmed; commit to a Friday 4 p.m. status update.",
+        "side": "keep",
+        "why": "This separates an unknown outcome from a communication commitment you can meet."
+      },
+      {
+        "text": "Quote an internal message calling the printer careless.",
+        "side": "remove",
+        "why": "Blame does not help the client act and introduces an unverified judgment."
+      },
+      {
+        "text": "List every printer troubleshooting exchange in the email body.",
+        "side": "remove",
+        "why": "Keep detailed records available; the client needs the practical consequence and next step."
+      },
+      {
+        "text": "Include the team’s unrelated office seating changes.",
+        "side": "remove",
+        "why": "They have no bearing on the materials or the client’s decision."
+      }
+    ],
+    "model": "Subject: Workshop materials: proposed digital option\n\nI’m sorry we cannot meet the promised Friday delivery of your printed workshop packs. Our check of 40 sample packs found six missing a worksheet; the full 200-pack order has not yet been verified.\n\nWe can provide corrected digital materials by Friday at 3 p.m. Would that work for your Monday workshop? Please let us know whether you agree to that option.\n\nThe printer currently estimates Monday for corrected packs, but the arrival time is unconfirmed. Marcus will send a further print status update Friday at 4 p.m. We will keep you informed and coordinate the next steps with you."
+  },
+  {
+    "id": 3,
+    "title": "The Recommendation",
+    "badge": "Sound Judgment",
+    "focus": "Synthesize competing priorities and make a qualified recommendation.",
+    "brief": "Northline Services tested a new request-routing process at Site A for two weeks. In the pilot period, average request time was eight minutes; the previous two-week period averaged ten minutes. Request mix and staffing differed, so the data do not establish that the new process caused the change. Site A needed four additional support hours per week. Site B has not tested the process. Leadership allows at most two extra support hours per week during expansion and wants a recommendation Friday at 2 p.m. Priya proposes a self-help guide but has not tested whether it would reduce support demand. Marcus can run a two-week limited test at Site B with a two-hour weekly support cap. Recommend a next step that acknowledges the evidence limits, the capacity constraint, and how results will be reviewed.",
+    "reader": "Leadership decision team",
+    "task": "Recommend full expansion, a bounded pilot, or a delay, and justify the choice with evidence and constraints.",
+    "labels": {
+      "sponsor": "Leadership team",
+      "team": "Implementation team",
+      "pilot": "Site B staff"
+    },
+    "prompt": "Write approximately 110–160 words to leadership. Recommend a next step, reconcile the speed and support data, acknowledge the evidence limits, and specify a review condition. More than one defensible recommendation is possible.",
+    "checks": [
+      "I make a clear recommendation and explain why it fits the constraints.",
+      "I report both the time comparison and the added support demand.",
+      "I avoid claiming causation or assuming Site B will match Site A.",
+      "I identify an owner, review point, and condition for changing course."
+    ],
+    "npc": [
+      {
+        "name": "Priya · Operations Analyst",
+        "lines": [
+          "The Site A pilot averaged eight minutes per request; the preceding period averaged ten.",
+          "But request mix and staffing were different. We cannot say the process caused that difference.",
+          "I propose a self-help guide. We have not tested whether it will reduce support demand."
+        ],
+        "note": "8 vs 10 minutes is a comparison, not causal proof; self-help effect untested."
+      },
+      {
+        "name": "Marcus · Implementation Lead",
+        "lines": [
+          "Site A required four extra support hours per week. Site B has not tested the process.",
+          "I can run a two-week limited test at Site B, with support capped at two hours per week.",
+          "If we hit the cap, pause new intake and review before expanding further."
+        ],
+        "note": "Site A used 4 extra hours/week; Site B limited test can cap support at 2 hours/week."
+      },
+      {
+        "name": "Elena · Program Sponsor",
+        "lines": [
+          "Leadership needs a recommendation by Friday at 2 p.m.",
+          "We can authorize at most two extra support hours per week during expansion.",
+          "Tell us what we know, what we still need to learn, and when we should revisit the decision."
+        ],
+        "note": "Recommendation due Friday 2 p.m.; hard expansion limit 2 extra support hours/week."
+      }
+    ],
+    "audience": [
+      {
+        "id": "sponsor",
+        "text": "Authorize a bounded Site B pilot rather than full expansion, with a two-hour support cap and a review after two weeks.",
+        "why": "Leadership needs a proposed decision, its boundaries, and a review point."
+      },
+      {
+        "id": "team",
+        "text": "Marcus: run the limited Site B test, log request times and support hours, and pause new intake if the weekly support cap is reached.",
+        "why": "Implementers need an owner, operational actions, and a stopping rule."
+      },
+      {
+        "id": "pilot",
+        "text": "Your team is trying a limited routing process. Record support needs and continue using the current route for requests outside the pilot.",
+        "why": "Site B staff need instructions for participating without treating a limited test as full rollout."
+      }
+    ],
+    "evidence": [
+      {
+        "text": "The pilot period averaged eight minutes per request; the preceding period averaged ten.",
+        "kind": "Observed fact",
+        "why": "This reports the comparison without assigning a cause."
+      },
+      {
+        "text": "The routing process caused a 20% improvement and will do the same at Site B.",
+        "kind": "Unsupported assumption",
+        "why": "The periods differ in staffing and request mix, and Site B has not been tested."
+      },
+      {
+        "text": "Run a bounded Site B pilot before considering full expansion.",
+        "kind": "Recommendation",
+        "why": "This proposes a way to resolve uncertainty within the capacity limit."
+      },
+      {
+        "text": "Site A needed four additional support hours per week.",
+        "kind": "Observed fact",
+        "why": "This observed support demand matters alongside the time comparison."
+      },
+      {
+        "text": "The proposed self-help guide will definitely cut support time in half.",
+        "kind": "Unsupported assumption",
+        "why": "The guide has not been tested; its effect is unknown."
+      },
+      {
+        "text": "Pause new pilot intake if the weekly two-hour support cap is reached.",
+        "kind": "Recommendation",
+        "why": "This is a proposed control that makes the capacity constraint operational."
+      }
+    ],
+    "priority": [
+      {
+        "text": "Report both the eight-versus-ten-minute comparison and four extra weekly support hours.",
+        "side": "keep",
+        "why": "A decision-maker needs both the apparent benefit and the resource cost."
+      },
+      {
+        "text": "State that staffing and request mix differed, and Site B has no pilot results.",
+        "side": "keep",
+        "why": "These limits prevent an unsupported causal or transfer claim."
+      },
+      {
+        "text": "Name Marcus, set the two-hour cap, and review the limited test after two weeks.",
+        "side": "keep",
+        "why": "This makes the proposed next step bounded, owned, and reviewable."
+      },
+      {
+        "text": "Describe the color options considered for the self-help guide cover.",
+        "side": "remove",
+        "why": "That design detail does not resolve the expansion decision."
+      },
+      {
+        "text": "Include every individual request log in the body of the leadership message.",
+        "side": "remove",
+        "why": "Summarize relevant evidence and keep detailed logs available separately."
+      },
+      {
+        "text": "Discuss an unrelated team lunch preference survey.",
+        "side": "remove",
+        "why": "It has no relevance to the rollout or the support constraint."
+      }
+    ],
+    "model": "Subject: Recommend a bounded Site B routing pilot\n\nI recommend a two-week limited Site B pilot rather than full expansion. Site A averaged eight minutes per request during the pilot versus ten in the preceding period, but staffing and request mix differed. We cannot attribute the difference to the process or assume it will transfer to Site B.\n\nSite A also needed four extra support hours per week, exceeding the two-hour expansion limit. Marcus can run the limited test with a two-hour cap, pausing new intake if the cap is reached. He should record support demand and comparable request data, then report to leadership after two weeks.\n\nThe proposed self-help guide may help, but its effect is untested. Please approve the bounded test by Friday at 2 p.m.; review the evidence and support burden before deciding whether to expand."
+  }
+];
+const BASE_LEVEL={id:1,title:'The Clear Update',badge:'Clear Communicator',focus:'Turn pilot evidence into a useful recommendation.',brief:brief,reader:'Project sponsor',task:'Write a concise, evidence-based recommendation.',labels:{sponsor:'Project sponsor',team:'Delivery team',pilot:'Pilot participants'},prompt:'Write approximately 80–130 words to the project sponsor. Lead with your recommendation, support it with pilot evidence, and identify the action, timing, and fallback.',checks:['My recommendation is clear for the sponsor.','I distinguish the pilot evidence from assumptions.','I identify the action, owner, and deadline.','I preserve uncertainty and explain the fallback.'],audience:audienceItems,evidence:evidenceItems,priority:priorityItems,model:model,npc:[{name:'Priya · Customer Operations',lines:['We tested 12 submissions. Ten arrived correctly; two were missing account IDs.','Both were recovered manually, taking 10 minutes each.','I can make the account-ID field mandatory before Friday’s retest.'],note:'12 pilot submissions; 2 missing account IDs; 10 minutes per recovery.'},{name:'Marcus · Delivery Lead',lines:['Wider rollout is planned for Monday at 9 a.m.','Priya can make the field mandatory and retest the two affected cases by Friday noon.','If retesting fails, we can continue the pilot instead of expanding.'],note:'Required account-ID field and retest by Friday noon; pilot can continue if needed.'},{name:'Elena · Project Sponsor',lines:['I need the go/no-go recommendation Friday at 3 p.m.','Lead with the recommendation, then evidence, action, and fallback.','There were only 12 submissions. Don’t turn a small sample into a guarantee.'],note:'Go/no-go due Friday 3 p.m.; state uncertainty and a fallback.'}]};
+const LEVELS=[BASE_LEVEL,...EXTRA_LEVELS];
+const STORAGE_KEY='copper-comma-office-hours-v2';
+let campaign={version:2,current:1,levels:{}};let storageAvailable=true;
+function newProgress(){return {audience:[],evidence:[],priority:[],clues:[],badges:[],draft:'',completedDraft:'',checks:[false,false,false,false],complete:false};}
+function getProgress(id=campaign.current){if(!campaign.levels[id])campaign.levels[id]=newProgress();return campaign.levels[id];}
+function readSaved(raw){
+ try{const d=JSON.parse(raw);if(!d||d.version!==2||!d.levels||typeof d.levels!=='object')return null;const cleaned={version:2,current:1,levels:{}};
+ for(const level of LEVELS){const v=d.levels[level.id];if(!v)continue;const p=newProgress();p.audience=Array.isArray(v.audience)?[...new Set(v.audience.filter(x=>level.audience.some(a=>a.id===x)))]:[];p.evidence=Array.isArray(v.evidence)?[...new Set(v.evidence.filter(x=>Number.isInteger(x)&&x>=0&&x<6))]:[];p.priority=Array.isArray(v.priority)?[...new Set(v.priority.filter(x=>Number.isInteger(x)&&x>=0&&x<6))]:[];p.clues=Array.isArray(v.clues)?v.clues.filter(x=>['Evidence','Plan','Decision'].includes(x.kind)&&typeof x.note==='string').slice(0,3):[];p.badges=Array.isArray(v.badges)?[...new Set(v.badges.filter(x=>['Reader Radar','Evidence Lens','Signal Keeper',level.badge].includes(x)))]:[];p.draft=typeof v.draft==='string'?v.draft.slice(0,20000):'';p.completedDraft=typeof v.completedDraft==='string'?v.completedDraft.slice(0,20000):(v.complete===true?p.draft:'');p.checks=Array.isArray(v.checks)?[0,1,2,3].map(i=>v.checks[i]===true):[false,false,false,false];p.complete=v.complete===true&&p.audience.length===3&&p.evidence.length===6&&p.priority.length===6&&p.completedDraft.trim().length>0&&(Boolean(v.completedDraft)||p.checks.every(Boolean));cleaned.levels[level.id]=p;}
+ const requested=Number(d.current);cleaned.current=LEVELS.some(x=>x.id===requested)&&[...Array(requested-1)].every((_,i)=>cleaned.levels[i+1]?.complete)?requested:1;return cleaned;
+ }catch(e){return null;}
+}
+try{const saved=readSaved(localStorage.getItem(STORAGE_KEY));if(saved)campaign=saved;}catch(e){storageAvailable=false;}
+function currentLevel(){return LEVELS[campaign.current-1];}
+function unlocked(id){return id===1||Boolean(getProgress(id-1).complete);}
+function snapshot(){const p=getProgress();p.audience=[...writingState.audience];p.evidence=[...writingState.evidence];p.priority=[...writingState.priority];p.draft=document.getElementById('draftText').value;p.checks=[...document.querySelectorAll('.selfcheck')].map(x=>x.checked);}
+function persist(){try{localStorage.setItem(STORAGE_KEY,JSON.stringify(campaign));storageAvailable=true;}catch(e){storageAvailable=false;}const text=storageAvailable?'Progress and drafts saved in this browser.':'Session-only progress: browser storage is unavailable. Download your Memory Bank before leaving.';document.getElementById('storageStatus').textContent=text;}
+window.__saveCampaign=()=>{snapshot();persist();renderCampaign();};
+function addBadge(name){const p=getProgress();if(p.badges.includes(name))return;p.badges.push(name);announce('rewardStatus','Badge earned: '+name+'. Open your Memory Bank to review it.');}
+window.__awardPractice=i=>{if(writingState[['audience','evidence','priority'][i]].size<[3,6,6][i])return;addBadge(['Reader Radar','Evidence Lens','Signal Keeper'][i]);snapshot();persist();renderCampaign();};
+window.__bankClue=ev=>{const p=getProgress();if(!p.clues.some(x=>x.kind===ev.pillar)){p.clues.push({kind:ev.pillar,note:ev.label});announce('rewardStatus','Added to Memory Bank: '+ev.pillar);}persist();renderCampaign();};
+function downloadFile(name,text){const u=URL.createObjectURL(new Blob([text],{type:'text/plain;charset=utf-8'}));const a=document.createElement('a');a.href=u;a.download=name;a.click();setTimeout(()=>URL.revokeObjectURL(u),1000);}
+window.__completeLevel=()=>{if(!ready()||!document.getElementById('draftText').value.trim()||![...document.querySelectorAll('.selfcheck')].every(x=>x.checked))return;snapshot();const p=getProgress();p.complete=true;p.completedDraft=p.draft;writingState.final=true;addBadge(currentLevel().badge);persist();renderCampaign();announce('finalFeedback','Level '+campaign.current+' complete. Your self-reviewed draft and '+currentLevel().badge+' badge are in your Memory Bank. '+(campaign.current<3?'The next level is now unlocked.':'All three levels complete: you have earned the Before You Hit Send collection.'));document.getElementById('nextLevelBtn').hidden=campaign.current===3;document.getElementById('downloadDraft').hidden=false;document.getElementById('finishBtn').textContent='Update saved draft & review';};
+document.getElementById('downloadDraft').onclick=()=>{snapshot();downloadFile('Office-Hours-Level-'+campaign.current+'-My-Update.txt','OFFICE HOURS — '+currentLevel().title+'\n\n'+getProgress().draft+'\n\nLearner self-review; not an automated writing-quality assessment.');};
+document.getElementById('nextLevelBtn').onclick=()=>switchLevel(campaign.current+1);
+function switchLevel(id,openDesk=false){if(!LEVELS.some(x=>x.id===id)||!unlocked(id))return;snapshot();campaign.current=id;loadLevel();if(window.__loadOfficeLevel)window.__loadOfficeLevel();persist();renderCampaign();if(openDesk){window.__gatherAll();openComputer();}else{overlay.style.display='none';document.getElementById('charSelect').scrollIntoView({block:'start'});}}
+function loadLevel(){const l=currentLevel(),p=getProgress();brief=l.brief;audienceItems=l.audience;evidenceItems=l.evidence;priorityItems=l.priority;model=l.model;writingState.audience=new Set(p.audience);writingState.evidence=new Set(p.evidence);writingState.priority=new Set(p.priority);writingState.selection=null;writingState.final=p.complete;
+ document.getElementById('scenarioBrief').textContent=l.brief;document.getElementById('readerTask').textContent='Your reader: '+l.reader+'. Your task: '+l.task;document.getElementById('writingPrompt').textContent=l.prompt;document.getElementById('draftText').value=p.draft;document.querySelectorAll('.selfcheck').forEach((x,i)=>{x.checked=p.checks[i];x.parentElement.querySelector('span').textContent=l.checks[i];});document.querySelectorAll('.diagBox').forEach(b=>b.querySelector('.label').textContent=l.labels[b.dataset.id]);document.querySelectorAll('.nextWrap').forEach(x=>x.classList.remove('show'));document.querySelectorAll('.tabBtn').forEach(x=>x.classList.remove('done'));document.getElementById('modelText').hidden=true;document.getElementById('modelBtn').setAttribute('aria-expanded','false');document.getElementById('balanceResult').style.display='none';['audienceFeedback','priorityFeedback','finalFeedback'].forEach(x=>document.getElementById(x).textContent='');document.getElementById('finishBtn').textContent=p.complete?'Update saved draft & review':'Complete level & save draft';document.getElementById('nextLevelBtn').hidden=!(p.complete&&l.id<3);document.getElementById('downloadDraft').hidden=!p.complete;goToTab(0);refreshFinish();renderCampaign();}
+function renderCampaign(){
+ document.querySelectorAll('.levelRoutes').forEach(box=>{box.innerHTML='';LEVELS.forEach(l=>{const b=document.createElement('button');b.className='level-card'+(campaign.current===l.id?' current':'');b.disabled=!unlocked(l.id);b.textContent=(getProgress(l.id).complete?'✓ ':unlocked(l.id)?'':'🔒 ')+'Level '+l.id+' · '+l.title;b.onclick=()=>switchLevel(l.id);box.appendChild(b);});});
+ const all=LEVELS.reduce((s,l)=>s+getProgress(l.id).badges.length,0),done=LEVELS.filter(l=>getProgress(l.id).complete).length;document.getElementById('campaignStatus').textContent='LEVEL '+campaign.current+' / 3 · '+currentLevel().title;document.getElementById('bankCount').textContent=all+' badges · '+done+'/3 levels';document.getElementById('levelFocus').textContent=currentLevel().focus;document.querySelector('#computerOverlay h2').textContent='LEVEL '+campaign.current+' · '+currentLevel().title.toUpperCase();
+ if(!document.getElementById('memoryBank').hidden)renderBank();
+}
+function renderBank(){const box=document.getElementById('bankContents');box.innerHTML='';LEVELS.forEach(l=>{const p=getProgress(l.id),section=document.createElement('section');section.className='memory-level';const h=document.createElement('h3');h.textContent='Level '+l.id+' · '+l.title+(p.complete?' · Complete':'');section.appendChild(h);const badges=document.createElement('div');badges.className='badgeShelf';for(const name of ['Reader Radar','Evidence Lens','Signal Keeper',l.badge]){const b=document.createElement('div');b.className='memory-badge'+(p.badges.includes(name)?' earned':'');const label=document.createElement('strong');label.textContent=(p.badges.includes(name)?'◆ ':'◇ ')+name;const t=document.createElement('span');t.textContent=({'Reader Radar':'Complete all reader matches.','Evidence Lens':'Classify all six statements.','Signal Keeper':'Sort all six update details.'})[name]||'Complete practice, write a draft, and self-review.';b.append(label,t);badges.appendChild(b);}section.appendChild(badges);const heading=document.createElement('h4');heading.textContent='Collected colleague notes';section.appendChild(heading);if(!p.clues.length){const em=document.createElement('p');em.textContent='Talk with colleagues or use the short route to collect the briefing notes.';section.appendChild(em);}p.clues.forEach(c=>{const el=document.createElement('p');el.textContent=c.kind+': '+c.note;section.appendChild(el);});if(p.completedDraft){const done=document.createElement('details');const sum=document.createElement('summary');sum.textContent='Completed self-reviewed draft';const saved=document.createElement('pre');saved.textContent=p.completedDraft;done.append(sum,saved);section.appendChild(done);}if(p.draft&&p.draft!==p.completedDraft){const d=document.createElement('details');const summary=document.createElement('summary');summary.textContent='Current working draft';const text=document.createElement('pre');text.textContent=p.draft;d.append(summary,text);section.appendChild(d);}box.appendChild(section);});document.getElementById('collectionBadge').hidden=!LEVELS.every(l=>getProgress(l.id).complete);}
+let bankReturnFocus=null;const bank=document.getElementById('memoryBank');
+function openBank(){snapshot();persist();bankReturnFocus=document.activeElement;bank.hidden=false;renderBank();document.getElementById('closeBank').focus();}
+function closeBank(){bank.hidden=true;if(bankReturnFocus)bankReturnFocus.focus();}
+document.querySelectorAll('[data-open-bank]').forEach(b=>b.onclick=openBank);document.getElementById('closeBank').onclick=closeBank;
+document.getElementById('exportBank').onclick=()=>{snapshot();persist();let text='OFFICE HOURS — MEMORY BANK\nPractice completion badges; not formal credentials or writing scores.\n\n';LEVELS.forEach(l=>{const p=getProgress(l.id);text+='LEVEL '+l.id+': '+l.title+'\nStatus: '+(p.complete?'Complete':'In progress')+'\nBadges: '+(p.badges.join(', ')||'None yet')+'\nNotes:\n'+p.clues.map(c=>'- '+c.kind+': '+c.note).join('\n')+'\nCompleted draft:\n'+(p.completedDraft||'(Not completed yet)')+'\nWorking draft:\n'+(p.draft||'(No working draft)')+'\n\n';});downloadFile('Office-Hours-Memory-Bank.txt',text);};
+document.getElementById('resetBank').onclick=()=>{document.getElementById('resetConfirm').hidden=false;};document.getElementById('cancelReset').onclick=()=>document.getElementById('resetConfirm').hidden=true;document.getElementById('confirmReset').onclick=()=>{campaign={version:2,current:1,levels:{}};loadLevel();if(window.__loadOfficeLevel)window.__loadOfficeLevel();persist();renderBank();document.getElementById('resetConfirm').hidden=true;announce('rewardStatus','Progress reset. A new collection is ready.');};
+window.addEventListener('keydown',e=>{if(bank.hidden)return;if(e.key==='Escape'){e.stopImmediatePropagation();closeBank();}if(e.key==='Tab'){const f=[...bank.querySelectorAll('button:not(:disabled),summary')].filter(x=>x.getClientRects().length&&!x.closest('[hidden]'));if(e.shiftKey&&document.activeElement===f[0]){e.preventDefault();f.at(-1).focus();}else if(!e.shiftKey&&document.activeElement===f.at(-1)){e.preventDefault();f[0].focus();}}},true);
+window.__currentMission=()=>currentLevel();window.__currentClues=()=>getProgress().clues;
+loadLevel();persist();renderCampaign();
+
+document.getElementById('shortRoute').onclick=()=>{window.__gatherAll();openComputer();};
+</script>
+</body>
+</html>

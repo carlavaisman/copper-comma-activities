@@ -1,0 +1,1630 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Sustainability Baseline Lab | Portfolio Simulation</title>
+<style>
+:root{
+  --lab-bg:#EFF1EE;
+  --lab-ink:#1C2420;
+  --lab-accent:#2F6B4F;
+  --lab-accent-dark:#1F4A36;
+  --lab-line:#D6D9D2;
+  --lab-card:#FFFFFF;
+
+  --aws-navy:#232F3E;
+  --aws-navy-2:#16202B;
+  --aws-orange:#FF9900;
+  --aws-bg:#F2F3F3;
+  --aws-line:#D5DBDB;
+
+  --az-blue:#0078D4;
+  --az-blue-dark:#004E8C;
+  --az-bg:#FAF9F8;
+  --az-line:#E1DFDD;
+
+  --gr-bg:#161719;
+  --gr-panel:#1E2024;
+  --gr-orange:#F46800;
+  --gr-line:#2E3136;
+  --gr-text:#D8D9DA;
+  --gr-text-dim:#8E9297;
+
+  --ccf-teal:#00A98F;
+  --ccf-bg:#FFFFFF;
+  --ccf-line:#DCE7E4;
+
+  --em-bg:#0D2B3E;
+  --em-accent:#3FA9D6;
+
+  --pdf-bg:#F7F4EC;
+  --pdf-line:#DCD5BF;
+
+  font-family:-apple-system,"Segoe UI",Helvetica,Arial,sans-serif;
+}
+*{box-sizing:border-box;}
+body{margin:0;background:#DDE1DA;color:var(--lab-ink);}
+
+.app{
+  max-width:1280px;
+  margin:0 auto;
+  background:var(--lab-bg);
+  min-height:100vh;
+}
+
+.topbar{
+  background:var(--lab-accent-dark);
+  color:#EAF1EC;
+  padding:12px 24px;
+  display:flex;
+  align-items:center;
+  gap:16px;
+}
+.topbar .brand{
+  font-weight:700;
+  font-size:0.95rem;
+  letter-spacing:0.01em;
+}
+.topbar .brand-sub{
+  font-size:0.76rem;
+  color:#B9CBC0;
+}
+.part-tabs{
+  margin-left:auto;
+  display:flex;
+  gap:6px;
+}
+.part-tab{
+  border:1px solid transparent;
+  background:rgba(255,255,255,0.08);
+  color:#CFE0D6;
+  font-size:0.82rem;
+  padding:7px 14px;
+  border-radius:5px;
+  cursor:pointer;
+  display:flex;
+  align-items:center;
+  gap:6px;
+}
+.part-tab.active{
+  background:#EAF1EC;
+  color:var(--lab-accent-dark);
+  font-weight:700;
+}
+.part-tab.locked{
+  opacity:0.5;
+  cursor:not-allowed;
+}
+.part-tab .lock{
+  font-size:0.7rem;
+}
+
+.progress-strip{
+  background:#E3E8DF;
+  border-bottom:1px solid var(--lab-line);
+  padding:8px 24px;
+  font-size:0.78rem;
+  color:#5B6A5F;
+  display:flex;
+  gap:18px;
+  align-items:center;
+}
+.progress-strip .seg{
+  display:flex;
+  align-items:center;
+  gap:5px;
+}
+.progress-dot{
+  width:8px;height:8px;border-radius:50%;
+  background:#B9C4B4;
+}
+.progress-dot.done{background:var(--lab-accent);}
+.progress-dot.current{background:var(--aws-orange);}
+
+.shell{
+  display:grid;
+  grid-template-columns:260px 1fr;
+  min-height:calc(100vh - 96px);
+}
+
+.rail{
+  background:#E7EAE2;
+  border-right:1px solid var(--lab-line);
+  padding:18px 14px;
+}
+.rail h4{
+  font-size:0.72rem;
+  text-transform:uppercase;
+  letter-spacing:0.05em;
+  color:#6C7A6F;
+  margin:6px 8px 10px 8px;
+}
+.rail-step{
+  display:flex;
+  align-items:flex-start;
+  gap:8px;
+  padding:9px 10px;
+  border-radius:6px;
+  cursor:pointer;
+  margin-bottom:2px;
+  font-size:0.85rem;
+  color:#3C4740;
+}
+.rail-step:hover{background:#DCE2D6;}
+.rail-step.active{
+  background:var(--lab-card);
+  box-shadow:0 0 0 1px var(--lab-line);
+  font-weight:600;
+  color:var(--lab-accent-dark);
+}
+.rail-step .chk{
+  flex:0 0 16px;
+  height:16px;width:16px;
+  border-radius:50%;
+  border:1.5px solid #A9B5A9;
+  margin-top:2px;
+  display:flex;align-items:center;justify-content:center;
+  font-size:10px;
+  color:#fff;
+}
+.rail-step.complete .chk{
+  background:var(--lab-accent);
+  border-color:var(--lab-accent);
+}
+.rail-step .vcf-tag{
+  margin-left:auto;
+  font-family:"Courier New",monospace;
+  font-size:0.68rem;
+  color:#8B978E;
+  align-self:center;
+}
+
+main.stage{
+  padding:26px 32px 60px 32px;
+  overflow-x:auto;
+}
+
+.tool-window{
+  border:1px solid var(--lab-line);
+  border-radius:8px;
+  overflow:hidden;
+  margin-bottom:18px;
+  background:#fff;
+}
+.tool-titlebar{
+  background:#DADFD5;
+  padding:7px 12px;
+  font-size:0.72rem;
+  color:#5B6A5F;
+  display:flex;
+  align-items:center;
+  gap:8px;
+  border-bottom:1px solid var(--lab-line);
+}
+.tool-titlebar .url{
+  font-family:"Courier New",monospace;
+  background:#fff;
+  border:1px solid var(--lab-line);
+  border-radius:4px;
+  padding:3px 10px;
+  flex:1;
+  color:#4A5750;
+}
+.dot-row{display:flex;gap:5px;}
+.tdot{width:9px;height:9px;border-radius:50%;background:#C6CDC2;}
+
+.lab-page{
+  background:var(--lab-card);
+  border:1px solid var(--lab-line);
+  border-radius:8px;
+  padding:24px 28px;
+  margin-bottom:18px;
+}
+.lab-page h2{
+  margin:0 0 6px 0;
+  font-size:1.3rem;
+}
+.lab-page .role-line{
+  font-size:0.86rem;
+  color:#5B6A5F;
+  margin-bottom:16px;
+}
+.lab-page p{line-height:1.55; font-size:0.93rem;}
+
+.badge{
+  display:inline-block;
+  font-size:0.68rem;
+  font-weight:700;
+  text-transform:uppercase;
+  letter-spacing:0.04em;
+  padding:3px 8px;
+  border-radius:3px;
+  margin-right:6px;
+}
+.badge-neutral{background:#DCE2D6;color:#4A5A4D;}
+.badge-sample{background:#F1E3D2;color:#8A5A20;}
+
+.constraint-grid{
+  display:grid;
+  grid-template-columns:1fr 1fr;
+  gap:10px;
+  margin-top:16px;
+}
+.constraint-item{
+  border-left:3px solid var(--lab-accent);
+  background:#F4F6F1;
+  padding:10px 12px;
+}
+.constraint-item .lbl{
+  font-size:0.7rem;
+  text-transform:uppercase;
+  color:var(--lab-accent-dark);
+  font-weight:700;
+  margin-bottom:3px;
+  letter-spacing:0.03em;
+}
+.constraint-item p{margin:0;font-size:0.85rem;}
+
+table.datatable{
+  width:100%;
+  border-collapse:collapse;
+  font-size:0.82rem;
+}
+table.datatable th, table.datatable td{
+  border:1px solid var(--lab-line);
+  padding:7px 9px;
+  text-align:left;
+}
+table.datatable th{
+  background:#EEF1EA;
+  font-size:0.7rem;
+  text-transform:uppercase;
+  letter-spacing:0.02em;
+  color:#5B6A5F;
+}
+.bar-cell{position:relative;min-width:90px;}
+.bar-track{
+  background:#E7EAE2;
+  border-radius:3px;
+  height:14px;
+  overflow:hidden;
+  position:relative;
+}
+.bar-fill{height:100%;border-radius:3px;}
+
+.ccf-window{background:var(--ccf-bg);}
+
+.rc-shell{border:1px solid var(--lab-line);border-radius:6px;overflow:hidden;margin-bottom:18px;}
+.rc-topbar{display:flex;align-items:center;gap:16px;padding:8px 16px;font-size:0.8rem;}
+.rc-logo{font-weight:700;font-size:0.92rem;white-space:nowrap;display:flex;align-items:center;gap:6px;}
+.rc-search{flex:1;max-width:480px;background:rgba(255,255,255,0.12);border:1px solid rgba(255,255,255,0.22);border-radius:4px;padding:6px 12px;font-size:0.78rem;color:rgba(255,255,255,0.55);}
+.rc-topbar-right{display:flex;align-items:center;gap:12px;margin-left:auto;}
+.rc-pill{border:1px solid rgba(255,255,255,0.3);border-radius:4px;padding:3px 10px;font-size:0.74rem;color:rgba(255,255,255,0.85);white-space:nowrap;}
+.rc-avatar{width:22px;height:22px;border-radius:50%;background:rgba(255,255,255,0.2);display:flex;align-items:center;justify-content:center;font-size:0.68rem;color:#fff;}
+.rc-icon-dot{width:6px;height:6px;border-radius:50%;background:rgba(255,255,255,0.5);}
+
+.rc-breadcrumb{padding:7px 16px;font-size:0.74rem;}
+
+.rc-bodyrow{display:flex;}
+.rc-iconrail{width:44px;flex:0 0 44px;display:flex;flex-direction:column;align-items:center;gap:18px;padding:14px 0;}
+.rc-iconrail .ri{width:20px;height:20px;border-radius:4px;background:rgba(255,255,255,0.15);}
+.rc-iconrail .ri.active{background:rgba(255,255,255,0.9);}
+
+.rc-leftnav{width:180px;flex:0 0 180px;padding:12px 0;}
+.rc-leftnav-item{padding:8px 16px;font-size:0.8rem;border-left:3px solid transparent;}
+.rc-leftnav-item.active{font-weight:600;}
+
+.rc-content{flex:1;padding:18px;min-width:0;}
+
+.aws-shell .rc-topbar{background:#0F1B2A;color:#fff;}
+.aws-shell .rc-breadcrumb{background:#EAEDED;color:#5A6672;border-bottom:1px solid #D5DBDB;}
+.aws-shell .rc-leftnav{background:#FAFAFA;border-right:1px solid #D5DBDB;color:#16191F;}
+.aws-shell .rc-leftnav-item.active{border-left-color:var(--aws-orange);background:#FFF5E6;color:#0F1B2A;}
+.aws-shell .rc-content{background:var(--aws-bg);}
+
+.az-shell .rc-topbar{background:#1B1A19;color:#fff;}
+.az-shell .rc-iconrail{background:#0F1010;}
+.az-shell .rc-leftnav{background:#fff;border-right:1px solid var(--az-line);color:#201F1E;}
+.az-shell .rc-leftnav-item.active{border-left-color:var(--az-blue);background:#EFF6FC;color:var(--az-blue-dark);}
+.az-shell .rc-content{background:var(--az-bg);}
+
+.gr-shell .rc-topbar{background:#101113;color:var(--gr-text);border-bottom:1px solid var(--gr-line);}
+.gr-shell .rc-iconrail{background:#141414;}
+.gr-shell .rc-iconrail .ri.active{background:var(--gr-orange);}
+.gr-shell .rc-content{background:var(--gr-bg);}
+.gr-timerange{border:1px solid var(--gr-line);border-radius:4px;padding:4px 10px;font-size:0.74rem;color:var(--gr-text-dim);}
+
+.aws-metric-row{
+  display:grid;
+  grid-template-columns:repeat(3,1fr);
+  gap:12px;
+  margin-bottom:16px;
+}
+.aws-metric-card{
+  background:#fff;
+  border:1px solid var(--aws-line);
+  border-radius:4px;
+  padding:12px 14px;
+}
+.aws-metric-card .k{font-size:0.72rem;color:#5A6672;text-transform:uppercase;}
+.aws-metric-card .v{font-size:1.35rem;font-weight:600;color:var(--aws-navy);margin-top:2px;}
+.aws-metric-card .m{font-size:0.72rem;color:#8A94A0;margin-top:4px;}
+
+.az-metric-row{
+  display:grid;
+  grid-template-columns:repeat(3,1fr);
+  gap:12px;
+  margin-bottom:16px;
+}
+.az-metric-card{
+  background:#fff;
+  border:1px solid var(--az-line);
+  border-radius:3px;
+  padding:12px 14px;
+}
+.az-metric-card .k{font-size:0.72rem;color:#605E5C;text-transform:uppercase;}
+.az-metric-card .v{font-size:1.35rem;font-weight:600;color:var(--az-blue-dark);margin-top:2px;}
+.az-metric-card .m{font-size:0.72rem;color:#8A8886;margin-top:4px;}
+
+.gr-panelgrid{
+  display:grid;
+  grid-template-columns:repeat(3,1fr);
+  gap:12px;
+  margin-bottom:16px;
+}
+.gr-panel{
+  background:var(--gr-panel);
+  border:1px solid var(--gr-line);
+  border-radius:4px;
+  padding:12px 14px;
+}
+.gr-panel .k{font-size:0.7rem;color:var(--gr-text-dim);text-transform:uppercase;}
+.gr-panel .v{font-size:1.35rem;font-weight:600;color:var(--gr-text);margin-top:2px;}
+.gr-panel .m{font-size:0.7rem;color:var(--gr-text-dim);margin-top:4px;}
+.gr-shell .rc-content table.datatable th{background:#25272B;color:var(--gr-text-dim);border-color:var(--gr-line);}
+.gr-shell .rc-content table.datatable td{background:var(--gr-panel);color:var(--gr-text);border-color:var(--gr-line);}
+.ccf-top{
+  background:#fff;
+  border-bottom:2px solid var(--ccf-teal);
+  padding:10px 18px;
+  display:flex;
+  align-items:center;
+  gap:10px;
+  font-size:0.85rem;
+  color:#1C2420;
+}
+.ccf-top .mark{
+  width:18px;height:18px;border-radius:50%;
+  background:var(--ccf-teal);
+}
+.ccf-body{padding:18px;}
+.ccf-hero{
+  display:flex;
+  gap:20px;
+  align-items:baseline;
+  margin-bottom:16px;
+}
+.ccf-hero .big{font-size:2rem;font-weight:700;color:var(--ccf-teal);}
+.ccf-hero .lbl{font-size:0.82rem;color:#5B6A5F;}
+.ccf-note{
+  background:#EAF7F3;
+  border-left:3px solid var(--ccf-teal);
+  padding:8px 12px;
+  font-size:0.78rem;
+  color:#0E5A4B;
+}
+
+.em-window{background:var(--em-bg); color:#EAF4F9;}
+.em-top{
+  padding:10px 18px;
+  font-size:0.85rem;
+  background:#092233;
+  border-bottom:1px solid #1B4258;
+}
+.em-body{padding:18px;}
+.em-gauge-row{display:flex;gap:16px;align-items:center;margin-bottom:16px;}
+.em-gauge{
+  width:120px;height:120px;border-radius:50%;
+  background:conic-gradient(var(--em-accent) 0% var(--pct,50%), #163449 var(--pct,50%) 100%);
+  display:flex;align-items:center;justify-content:center;
+  position:relative;
+}
+.em-gauge::after{
+  content:attr(data-val);
+  width:92px;height:92px;border-radius:50%;
+  background:var(--em-bg);
+  display:flex;align-items:center;justify-content:center;
+  font-size:0.85rem;font-weight:700;color:#EAF4F9;text-align:center;
+  padding:6px;
+}
+.em-legend{font-size:0.82rem;color:#B9D8E6;line-height:1.6;}
+.em-legend b{color:#fff;}
+
+.terminal{
+  background:#0B0F0C;
+  color:#8FE3A0;
+  font-family:"Courier New",monospace;
+  font-size:0.82rem;
+  padding:16px 18px;
+  border-radius:6px;
+  line-height:1.65;
+  white-space:pre-wrap;
+}
+.terminal .dim{color:#5C7A63;}
+.terminal .warn{color:#E3C36B;}
+
+.pdf-window{
+  background:var(--pdf-bg);
+  border:1px solid var(--pdf-line);
+  padding:24px 30px;
+  font-family:Georgia,serif;
+}
+.pdf-window h3{margin:0 0 4px 0;font-size:1.05rem;}
+.pdf-window .doc-meta{font-size:0.78rem;color:#77705A;margin-bottom:14px;font-family:-apple-system,sans-serif;}
+.pdf-field-row{
+  display:grid;
+  grid-template-columns:1fr 1fr;
+  gap:10px 20px;
+  margin-top:10px;
+}
+.pdf-field{
+  border-bottom:1px solid var(--pdf-line);
+  padding-bottom:8px;
+}
+.pdf-field .k{font-size:0.76rem;color:#8A8265;font-family:-apple-system,sans-serif;}
+.pdf-field .v{font-size:0.98rem;margin-top:2px;}
+
+.options-note{
+  background:#F4F6F1;
+  border:1px solid var(--lab-line);
+  border-left:3px solid var(--lab-accent);
+  padding:10px 14px;
+  font-size:0.85rem;
+  margin-bottom:14px;
+  color:var(--lab-accent-dark);
+}
+
+.evidence-checklist{list-style:none;margin:0;padding:0;}
+.evidence-checklist li{
+  display:flex;align-items:center;gap:10px;
+  padding:10px 0;border-bottom:1px solid var(--lab-line);
+  font-size:0.9rem;
+}
+.evidence-checklist li .chk{
+  flex:0 0 18px;height:18px;width:18px;border-radius:4px;
+  border:1.5px solid var(--lab-accent);
+  display:flex;align-items:center;justify-content:center;color:#fff;font-size:12px;
+}
+.evidence-checklist li.done .chk{background:var(--lab-accent);}
+
+.env-pick{
+  display:grid;
+  grid-template-columns:repeat(3,1fr);
+  gap:12px;
+  margin:16px 0;
+}
+.env-pick label{
+  border:1.5px solid var(--lab-line);
+  border-radius:8px;
+  padding:14px;
+  cursor:pointer;
+  font-size:0.86rem;
+  display:block;
+}
+.env-pick input{margin-right:8px;}
+.env-pick label.selected{
+  border-color:var(--lab-accent);
+  background:#F4F6F1;
+}
+
+.stepnav{
+  display:flex;
+  justify-content:space-between;
+  margin-top:6px;
+}
+button.navbtn{
+  background:var(--lab-accent);
+  color:#fff;
+  border:none;
+  padding:10px 20px;
+  border-radius:6px;
+  font-size:0.88rem;
+  font-weight:600;
+  cursor:pointer;
+}
+button.navbtn.secondary{
+  background:transparent;
+  color:var(--lab-accent-dark);
+  border:1px solid var(--lab-line);
+}
+button.navbtn:disabled{opacity:0.4;cursor:not-allowed;}
+
+.calc-row{display:flex;gap:14px;align-items:flex-end;margin:14px 0;flex-wrap:wrap;}
+.calc-field label{display:block;font-size:0.76rem;color:#5B6A5F;margin-bottom:4px;}
+.calc-field input{
+  border:1px solid var(--lab-line);
+  border-radius:5px;
+  padding:8px 10px;
+  font-size:0.9rem;
+  width:150px;
+}
+.calc-result{
+  background:#F1E3D2;
+  border-left:3px solid #A9662E;
+  padding:12px 14px;
+  font-size:0.9rem;
+  margin-top:10px;
+  color:#7A4A1E;
+  display:none;
+}
+.calc-result.show{display:block;}
+
+.footnote{font-size:0.76rem;color:#8B978E;margin-top:10px;}
+.portfolio-banner{max-width:1450px;margin:auto;padding:18px 24px;background:#f1e6d6;color:#3e3024;font:14px/1.5 Arial,sans-serif}.portfolio-banner b{font-size:11px;letter-spacing:1px}.portfolio-banner p{margin:7px 0}.portfolio-banner label{margin-right:7px}.portfolio-banner button,.portfolio-banner select{padding:8px 10px;margin:5px 6px 5px 0;border:1px solid #987858;background:#fffaf3;color:#3e3024;cursor:pointer}.rail-step:focus-visible,.part-tab:focus-visible{outline:3px solid #98572f;outline-offset:2px}@media(max-width:760px){.shell{display:block}.rail{width:100%;display:flex;overflow:auto;gap:8px;position:static}.rail h4{display:none}.rail-step{min-width:170px}.stage{padding:18px}.topbar{flex-wrap:wrap;gap:15px}.part-tabs{flex-wrap:wrap}.portfolio-banner{padding:15px}.calc-row{flex-wrap:wrap}}@media(prefers-reduced-motion:reduce){*{animation:none!important;transition:none!important}}</style>
+</head>
+<body>
+
+<aside class="portfolio-banner"><b>SIMULATED LEARNING ENVIRONMENT</b><p>Fictional organizations, scenario data, and approximated tool screens. No live cloud accounts or monitoring services are connected. Step completion records interaction attempts, not verified technical mastery.</p><label for="demoPart">Explore an environment</label><select id="demoPart"><option value="aws">AWS</option><option value="azure">Azure</option><option value="self">Self-hosted</option></select><button data-jump="narrative">Read brief</button><button data-jump="codecarbon">Configure monitoring</button><button data-jump="util">Explore utilization</button><button data-jump="grid">View grid data</button><button onclick="downloadSelectionRecord()">Download selection record</button><p id="recordStatus" role="status"></p></aside><div class="app">
+  <div class="topbar">
+    <div>
+      <div class="brand">Sustainability Baseline Lab</div>
+      <div class="brand-sub">Portfolio simulation · Environmental measurement workflow</div>
+    </div>
+    <div class="part-tabs" id="partTabs"></div>
+  </div>
+  <div class="progress-strip" id="progressStrip"></div>
+
+  <div class="shell">
+    <nav class="rail" id="rail"></nav>
+    <main class="stage" id="stage"></main>
+  </div>
+</div>
+
+<script>
+const PARTS = {
+  aws:{
+    key:'aws', label:'Part 1 · AWS', short:'AWS', accent:'#FF9900',
+    org:'Raleigh Pointe AWS', workload:'PixelSort',
+    narrative:"Raleigh Pointe AWS runs PixelSort, an AI image-classification API that auto-tags product photos for an e-commerce catalog team. The service runs continuously on a 24-instance AWS fleet in Oregon (us-west-2). The sustainability team has asked you, a newly onboarded engineer, to establish a current-state environmental baseline for PixelSort before next quarter's capacity planning review.",
+    role:"Sustainable AI Infrastructure Engineer · Raleigh Pointe AWS Cloud Platform team",
+    team:[["Priya Chen","Sustainability Program Lead — assigned the baseline audit; expects accurate, tool-sourced figures"],["Marcus Webb","Senior Platform Engineer — context on the deployment, not the sustainability tooling"]],
+    constraints:[
+      ["Sustainability objectives","Reduce energy consumption per 1,000 images by 20% and associated carbon emissions by 15% within 12 months."],
+      ["Technical constraints","Must remain within the existing AWS account. Primary catalog data stays in us-west-2; stateless processing may use another approved US region if requirements are maintained."],
+      ["Operational constraints","Operates continuously. Planned interruptions cannot exceed 30 minutes per deployment."],
+      ["Cost constraints","No increase to recurring monthly infrastructure costs. No new vendor contracts."],
+      ["Performance requirements","99.9% availability and a p95 response time of 1.5 seconds or less."],
+      ["Business requirements","Must support a projected 30% increase in image-processing volume over 12 months."],
+      ["Regulatory / reporting","Reports Scope 2 and applicable Scope 3 emissions annually using the GHG Protocol."]
+    ],
+    config:[
+      "PixelSort runs on 24 g5.2xlarge EC2 instances that remain active continuously.",
+      "Automatic scale-in and scheduled shutdown are not currently enabled.",
+      "All instances remain available during low-volume periods.",
+      "Image-processing demand varies throughout the day; capacity stays the same across every period.",
+      "Nonurgent catalog-reprocessing jobs run as they enter the queue rather than in a designated processing window."
+    ],
+    trend:[
+      ["12:00–6:00 a.m.","12,000","36.0","74","30","20","45"],
+      ["6:00 a.m.–12:00 p.m.","28,000","44.0","88","70","38","58"],
+      ["12:00–6:00 p.m.","45,000","53.0","110","92","58","70"],
+      ["6:00 p.m.–12:00 a.m.","35,000","54.4","96","92","60","75"]
+    ],
+    storageAvg:48, netAvg:118,
+    volLabel:"Images processed",
+    ccConfig:{
+      workload:[
+        {id:'pixelsort', label:'PixelSort fleet', correct:true, hardware:'24 × NVIDIA A10G (g5.2xlarge)', energy:187.4, emissions:17.24},
+        {id:'catalogbatch', label:'catalog-batch-reindex fleet', correct:false, hardware:'4 × c5.4xlarge', energy:42.1, emissions:5.06},
+        {id:'legacythumb', label:'legacy-thumbnail-svc fleet', correct:false, hardware:'2 × t3.large', energy:9.8, emissions:1.18}
+      ],
+      geo:[
+        {id:'oregon', label:'Oregon, United States', correct:true, intensity:1},
+        {id:'nvirginia', label:'N. Virginia, United States', correct:false, intensity:1.65},
+        {id:'ireland', label:'Ireland, EU', correct:false, intensity:0.55}
+      ],
+      period:[
+        {id:'rep24', label:'Representative 24-hour record (provided)', correct:true, factor:1},
+        {id:'last7', label:'Last 7 days', correct:false, factor:7},
+        {id:'last1h', label:'Last 1 hour', correct:false, factor:0.042}
+      ],
+      boundary:[
+        {id:'fleet24', label:'24-instance inference fleet', correct:true, factor:1},
+        {id:'wholeacct', label:'Entire AWS account', correct:false, factor:1.6},
+        {id:'singleinstance', label:'Single instance sample', correct:false, factor:0.042}
+      ]
+    },
+    nativeName:'AWS Sustainability Console',
+    nativeFilterDefs:[
+      {key:'region', label:'Region', options:['us-east-1','us-west-2','eu-west-1'], correct:'us-west-2'},
+      {key:'service', label:'Service', options:['Lambda','EC2','S3'], correct:'EC2'}
+    ],
+    nativeScopes:true,
+    nativeCorrectCards:[["Estimated emissions (Scope 2+3)","≈516 kg CO₂e","EC2 · us-west-2"],["Estimated energy","≈5,622 kWh","Provider-allocated, 30-day trailing"],["Coverage","100% of account resources","Region + service filter applied"]],
+    nativePeriod:'Trailing 30 days',
+    nativeMaxEmissions:516,
+    nativeCorrectEnergy:5622,
+    nativeRatio:0.09178,
+    nativeDecoyRange:[150,2400],
+    utilName:'CloudWatch',
+    utilOptions:[
+      {id:'pixelsort-fleet', label:'pixelsort-fleet — 24 instances', factor:1, correct:true},
+      {id:'legacy-thumbnail-fleet', label:'legacy-thumbnail-fleet — 3 instances', factor:0.18, correct:false},
+      {id:'staging-fleet', label:'staging-fleet — 6 instances', factor:0.42, correct:false}
+    ],
+    gridToolName:'Electricity Maps',
+    gridOptions:[
+      {id:'us-nw-pacw', label:'US-NW-PACW · Oregon, US', value:96, pct:60, correct:true},
+      {id:'us-cal-ciso', label:'US-CAL-CISO · California, US', value:210, pct:88, correct:false},
+      {id:'us-mida-pjm', label:'US-MIDA-PJM · East US', value:380, pct:95, correct:false}
+    ],
+    gridRange:'74–110 gCO₂e/kWh across the observed day',
+    ccfValue:"17.9 kg CO₂e",
+    ccfNote:"Vendor-neutral cross-check for the same 24-hour PixelSort fleet window. Provider and vendor-neutral tools are expected to differ due to methodology and allocation assumptions.",
+    facility:{title:"Raleigh Pointe AWS — Facility & Hardware Reference",note:"AWS-operated region · authoritative scenario values for the most recent facility reporting year (static reference, not a live tool)",fields:[["PUE","1.18"],["WUE","0.35 L/kWh"],["Estimated water consumption (24h)","65.6 L"],["Cooling approach","Hybrid evaporative cooling with air-side economization"],["Hardware refresh cycle","4 years"],["Annualized embodied-carbon allocation","1,850 kg CO₂e/year"],["Embodied carbon — representative day","5.07 kg CO₂e"]]},
+    options:[
+      {name:"Queue-based autoscaling from 10–24 instances",
+       env:"Estimated 18%–28% reduction in compute energy. Carbon emissions are expected to decrease by a similar proportion if grid intensity remains comparable.",
+       cost:"Estimated 18%–28% reduction in recurring compute cost.",
+       perf:"Scale-out requires approximately 2–4 minutes. Minimum capacity must preserve 99.9% availability and p95 response time of 1.5 seconds or less.",
+       ops:"Requires queue-depth thresholds, minimum-capacity settings, scaling limits, testing, and operating procedures.",
+       effort:"Moderate effort; approximately 4–8 weeks.",
+       uncertainty:"Results depend on demand patterns, scaling thresholds, minimum capacity, and instance availability."},
+      {name:"Scheduled processing of nonurgent catalog-reprocessing jobs",
+       env:"Estimated 3%–8% reduction in carbon emissions, with little change in total energy.",
+       cost:"Expected to be approximately cost neutral.",
+       perf:"Nonurgent completion may be delayed by up to six hours. No effect is expected for urgent processing.",
+       ops:"Requires identification of nonurgent work and creation of an approved scheduling window.",
+       effort:"Low-to-moderate effort; approximately 2–4 weeks.",
+       uncertainty:"Carbon benefit depends on when lower-carbon periods occur and how much work can be shifted."},
+      {name:"Alternative approved AWS GPU configuration",
+       env:"Estimated 10%–18% reduction in energy per 1,000 images. Carbon emissions are expected to change in the same direction if region and workload volume remain comparable.",
+       cost:"Recurring cost could range from a 5% decrease to a 5% increase.",
+       perf:"Model compatibility, throughput, latency, and output-quality validation are required.",
+       ops:"Requires benchmarking, deployment testing, driver and framework validation, and rollback planning.",
+       effort:"High effort; approximately 8–16 weeks.",
+       uncertainty:"Actual results depend on the selected instance, software compatibility, pricing, and utilization."},
+      {name:"Expanded utilization and carbon alerts",
+       env:"Minimal direct energy or carbon effect; may help identify idle or overprovisioned resources sooner.",
+       cost:"Small monitoring-cost increase.",
+       perf:"No direct performance effect is expected.",
+       ops:"Requires thresholds, notification routing, ownership, and response procedures.",
+       effort:"Low effort; approximately 1–2 weeks.",
+       uncertainty:"Indirect benefits depend on whether teams act on the alerts."}
+    ]
+  },
+  azure:{
+    key:'azure', label:'Part 2 · Azure', short:'Azure', accent:'#0078D4',
+    org:'Raleigh Pointe Azure', workload:'ClaimSense',
+    narrative:"Raleigh Pointe Azure runs ClaimSense, an AI-powered insurance claims document-analysis service, on a 16-VM Azure fleet in Virginia (East US). The sustainability team has asked you, a newly onboarded engineer, to establish a current-state environmental baseline for ClaimSense before next quarter's capacity planning review.",
+    role:"Sustainable AI Infrastructure Engineer · Raleigh Pointe Azure Cloud Platform team",
+    team:[["Dana Ruiz","Sustainability Program Lead — assigned the baseline audit; expects accurate, tool-sourced figures"],["Sam Okafor","Senior Platform Engineer — context on the deployment, not the sustainability tooling"]],
+    constraints:[
+      ["Sustainability objectives","Reduce carbon emissions per processed claim by 25% before the end of next fiscal year, while continuing to report water consumption."],
+      ["Technical constraints","Must remain in the existing Azure tenant. Claims data stays in approved US regions. Must preserve the approved model-accuracy threshold."],
+      ["Operational constraints","Demand may reach 4× normal during severe-weather events. Urgent claims cannot be delayed; nonurgent batch may be delayed up to six hours."],
+      ["Cost constraints","Annual Azure costs may not increase more than 5%. Cost-neutral or cost-reducing recommendations preferred."],
+      ["Performance requirements","99.95% availability; urgent claims within 2 minutes; 95% of routine claims within 15 minutes."],
+      ["Business requirements","Must support a projected 40% increase in peak claim volume next severe-weather season."],
+      ["Regulatory / reporting","Claims data is regulated personal information under existing access/retention controls. Reports Scope 2 and Scope 3 emissions to its parent org."]
+    ],
+    config:[
+      "ClaimSense runs on 16 Standard_NC24ads_A100_v4 Azure VMs.",
+      "VMs remain active continuously; automatic scale-in is not currently enabled.",
+      "Urgent and nonurgent claims use the same processing queue.",
+      "Nonurgent batch processing begins as documents enter the queue rather than being scheduled by demand or grid intensity."
+    ],
+    trend:[
+      ["12:00–6:00 a.m.","500","25.1","330","24","15","38"],
+      ["6:00 a.m.–12:00 p.m.","1,200","31.4","350","58","31","54"],
+      ["12:00–6:00 p.m.","2,800","42.8","410","94","52","68"],
+      ["6:00 p.m.–12:00 a.m.","2,500","43.6","382","96","58","72"]
+    ],
+    storageAvg:42, netAvg:96,
+    volLabel:"Claims processed",
+    ccConfig:{
+      workload:[
+        {id:'claimsense', label:'ClaimSense fleet', correct:true, hardware:'16 × NVIDIA A100 (Standard_NC24ads_A100_v4)', energy:142.9, emissions:52.59},
+        {id:'policyingest', label:'policy-ingest-batch fleet', correct:false, hardware:'4 × Standard_D8s_v5', energy:28.3, emissions:8.1},
+        {id:'legacyocr', label:'legacy-ocr-svc fleet', correct:false, hardware:'2 × Standard_B4ms', energy:6.4, emissions:2.0}
+      ],
+      geo:[
+        {id:'eastus', label:'East US', correct:true, intensity:1},
+        {id:'westus2', label:'West US 2', correct:false, intensity:0.6},
+        {id:'northeurope', label:'North Europe', correct:false, intensity:0.5}
+      ],
+      period:[
+        {id:'rep24', label:'Representative 24-hour record (provided)', correct:true, factor:1},
+        {id:'last7', label:'Last 7 days', correct:false, factor:7},
+        {id:'last1h', label:'Last 1 hour', correct:false, factor:0.042}
+      ],
+      boundary:[
+        {id:'fleet16', label:'16-VM inference fleet', correct:true, factor:1},
+        {id:'wholesub', label:'Entire subscription', correct:false, factor:1.5},
+        {id:'singlevm', label:'Single VM sample', correct:false, factor:0.06}
+      ]
+    },
+    nativeName:'Azure Carbon Optimization',
+    nativeFilterDefs:[
+      {key:'rg', label:'Resource Group', options:['raleigh-pointe-policy-rg','raleigh-pointe-azure-rg','raleigh-pointe-legacy-rg'], correct:'raleigh-pointe-azure-rg'},
+      {key:'location', label:'Location', options:['West US 2','East US','North Europe'], correct:'East US'}
+    ],
+    nativeScopes:false,
+    nativeCorrectCards:[["Estimated emissions","≈1,580 kg CO₂e","raleigh-pointe-azure-rg · East US"],["Estimated energy","≈4,287 kWh","Provider-allocated, 30-day trailing"],["Coverage","100% of resource group","Resource group + location filter applied"]],
+    nativeMaxEmissions:1580,
+    nativeCorrectEnergy:4287,
+    nativeRatio:0.36854,
+    nativeDecoyRange:[120,2000],
+    nativePeriod:'Trailing 30 days',
+    utilName:'Azure Monitor',
+    utilOptions:[
+      {id:'claimsense-vmss', label:'claimsense-vmss — 16 instances', factor:1, correct:true},
+      {id:'legacy-ocr-vmss', label:'legacy-ocr-vmss — 3 instances', factor:0.15, correct:false},
+      {id:'staging-vmss', label:'staging-vmss — 5 instances', factor:0.38, correct:false}
+    ],
+    gridToolName:'Electricity Maps',
+    gridOptions:[
+      {id:'us-mida-pjm', label:'US-MIDA-PJM · East US (Virginia)', value:382, pct:78, correct:true},
+      {id:'us-cal-ciso', label:'US-CAL-CISO · California, US', value:210, pct:52, correct:false},
+      {id:'eu-fr', label:'EU-FR · France', value:62, pct:15, correct:false}
+    ],
+    gridRange:'330–410 gCO₂e/kWh across the observed day',
+    ccfValue:"55.1 kg CO₂e",
+    ccfNote:"Vendor-neutral cross-check for the same 24-hour ClaimSense fleet window. Provider and vendor-neutral tools are expected to differ due to methodology and allocation assumptions.",
+    facility:{title:"Raleigh Pointe Azure — Facility & Hardware Reference",note:"Azure-operated region · authoritative scenario values for the most recent facility reporting year (static reference, not a live tool)",fields:[["PUE","1.20"],["WUE","0.45 L/kWh"],["Estimated water consumption (24h)","64.3 L"],["Cooling approach","Air and water-assisted economization"],["Hardware refresh cycle","4 years"],["Annualized embodied-carbon allocation","1,600 kg CO₂e/year"],["Embodied carbon — representative day","4.38 kg CO₂e"]]},
+    options:[
+      {name:"Queue-based autoscaling from 6–16 virtual machines",
+       env:"Estimated 20%–30% reduction in compute energy. Carbon emissions are expected to decrease similarly if grid intensity remains comparable.",
+       cost:"Estimated 20%–30% reduction in recurring compute cost.",
+       perf:"Scale-out requires approximately 2–5 minutes. Sufficient capacity must remain available for urgent claims.",
+       ops:"Requires separate scaling thresholds, minimum urgent-claim capacity, testing, and operating procedures.",
+       effort:"Moderate effort; approximately 4–8 weeks.",
+       uncertainty:"Results depend on claim volume, scaling thresholds, severe-weather demand, and minimum capacity."},
+      {name:"Separate urgent and nonurgent queues",
+       env:"Estimated 6%–12% reduction in carbon emissions with little change in total energy.",
+       cost:"Expected to be approximately cost neutral, excluding minor queue-management charges.",
+       perf:"Nonurgent work may be delayed by up to six hours; urgent processing must remain within required service levels.",
+       ops:"Requires queue classification, routing logic, scheduling rules, and monitoring.",
+       effort:"Moderate effort; approximately 4–8 weeks.",
+       uncertainty:"Benefit depends on the volume of work that can be shifted and the availability of lower-carbon periods."},
+      {name:"Approved alternative US Azure region",
+       env:"Based on a comparison of 368 gCO₂e/kWh with 190–240 gCO₂e/kWh, estimated operational carbon reduction is approximately 35%–48% for equivalent energy use. Total energy is expected to remain approximately unchanged.",
+       cost:"Recurring data-transfer and operating costs may increase; the total increase must remain within the 5% annual cost constraint.",
+       perf:"Network latency is expected to increase by approximately 35–65 milliseconds. Availability and processing-time requirements must be validated.",
+       ops:"Requires data-residency review, security approval, migration planning, testing, and rollback procedures.",
+       effort:"High effort; approximately 12–24 weeks.",
+       uncertainty:"Grid intensity changes over time, and migration, pricing, and latency effects depend on the selected region and architecture."},
+      {name:"Model quantization after accuracy validation",
+       env:"Estimated 12%–22% reduction in inference energy. Carbon and compute cost are expected to decrease in the same direction if workload volume and region remain comparable.",
+       cost:"Expected reduction in recurring compute cost; exact amount depends on throughput and instance utilization.",
+       perf:"Model accuracy may decrease by approximately 0.2–1.0 percentage point. Latency may improve, but validation is required.",
+       ops:"Requires model conversion, accuracy testing, performance benchmarking, approval, deployment, and rollback planning.",
+       effort:"High effort; approximately 8–16 weeks.",
+       uncertainty:"Results depend on the model, quantization method, dataset, hardware, and approved accuracy threshold."},
+      {name:"Expanded utilization and carbon alerts",
+       env:"Minimal direct energy or carbon effect; may help identify idle or inefficient resources sooner.",
+       cost:"Small monitoring-cost increase.",
+       perf:"No direct performance effect is expected.",
+       ops:"Requires thresholds, notification routing, ownership, and response procedures.",
+       effort:"Low effort; approximately 1–2 weeks.",
+       uncertainty:"Indirect benefits depend on whether teams act on the alerts."}
+    ]
+  },
+  self:{
+    key:'self', label:'Part 3 · Self-Hosted', short:'Self-Hosted', accent:'#F46800',
+    org:'Raleigh Pointe Self-Hosted', workload:'PathFinder',
+    narrative:"Raleigh Pointe Self-Hosted runs PathFinder, a real-time perception system for autonomous warehouse robots, on a 32-GPU colocated cluster at a Texas data center. The sustainability team has asked you, a newly onboarded engineer, to establish a current-state environmental baseline for PathFinder before next quarter's capacity planning review.",
+    role:"Sustainable AI Infrastructure Engineer · Raleigh Pointe Self-Hosted Platform team",
+    team:[["Alicia Ford","Sustainability Program Lead — assigned the baseline audit; expects accurate, tool-sourced figures"],["Jordan Patel","Senior Platform Engineer — context on the deployment and colocation facility, not the sustainability tooling"]],
+    constraints:[
+      ["Sustainability objectives","Reduce energy consumption per inference by 15% and facility-related water consumption by 10% within 18 months, avoiding unnecessary early hardware replacement."],
+      ["Technical constraints","Real-time inference must remain on existing colocated infrastructure. H100 servers remain in service through their five-year refresh cycle. Public-cloud migration of real-time inference is not permitted."],
+      ["Operational constraints","Real-time inference operates continuously during warehouse operations. Retraining/batch work may be delayed up to 12 hours."],
+      ["Cost constraints","No new capital hardware purchases approved for 18 months. Prioritize configuration, scheduling, utilization, cooling, and lifecycle improvements."],
+      ["Performance requirements","99.99% availability during operations; p95 inference latency ≤ 40 ms."],
+      ["Business requirements","Must support two new warehouse locations and a doubling of connected robots within 18 months."],
+      ["Regulatory / reporting","Reports Scope 2 and hardware-related Scope 3 emissions in customer disclosures; must retain supporting documentation."]
+    ],
+    config:[
+      "PathFinder runs on eight servers with four NVIDIA H100 GPUs each — 32 GPUs total.",
+      "All servers and GPUs remain powered and available continuously.",
+      "GPU power-management and automatic idle-state policies are not currently enabled.",
+      "Model retraining begins when a training package is available and may overlap with peak demand or higher-carbon grid periods."
+    ],
+    trend:[
+      ["12:00–6:00 a.m.","410,000","64.0","352","56","35","62"],
+      ["6:00 a.m.–12:00 p.m.","760,000","72.0","381","78","45","70"],
+      ["12:00–6:00 p.m.","1,140,000","84.0","438","98","60","80"],
+      ["6:00 p.m.–12:00 a.m.","990,000","85.6","421","100","64","84"]
+    ],
+    storageAvg:67, netAvg:210,
+    volLabel:"Inference requests",
+    ccConfig:{
+      workload:[
+        {id:'pathfinder', label:'PathFinder cluster', correct:true, hardware:'8 servers × 4 NVIDIA H100 (32 GPUs)', energy:305.6},
+        {id:'legacytraining', label:'legacy-training-cluster', correct:false, hardware:'2 servers × 4 NVIDIA H100 (8 GPUs)', energy:67.2},
+        {id:'staging', label:'staging-cluster', correct:false, hardware:'1 server × 4 NVIDIA H100 (4 GPUs)', energy:27.5}
+      ],
+      geo:[
+        {id:'ercot', label:'ERCOT, Texas', correct:true, intensity:1},
+        {id:'caiso', label:'CAISO, California', correct:false, intensity:0.5},
+        {id:'pjm', label:'PJM, Mid-Atlantic', correct:false, intensity:0.9}
+      ],
+      period:[
+        {id:'rep24', label:'Representative 24-hour record (provided)', correct:true, factor:1},
+        {id:'last7', label:'Last 7 days', correct:false, factor:7},
+        {id:'last1h', label:'Last 1 hour', correct:false, factor:0.042}
+      ],
+      boundary:[
+        {id:'all8', label:'All eight servers and 32 H100 GPUs', correct:true, factor:1},
+        {id:'singleserver', label:'Single server (4 GPUs)', correct:false, factor:0.127},
+        {id:'wholefacility', label:'Entire colocation facility', correct:false, factor:1.4}
+      ]
+    },
+    utilName:'Prometheus + NVIDIA DCGM Exporter',
+    utilOptions:[
+      {id:'pathfinder-cluster', label:'pathfinder-cluster — 8 nodes', factor:1, correct:true},
+      {id:'legacy-training-cluster', label:'legacy-training-cluster — 2 nodes', factor:0.22, correct:false},
+      {id:'staging-cluster', label:'staging-cluster — 1 node', factor:0.09, correct:false}
+    ],
+    gridToolName:'Electricity Maps',
+    gridOptions:[
+      {id:'ercot', label:'ERCOT · Texas, US', value:421, pct:90, correct:true},
+      {id:'us-cal-ciso', label:'US-CAL-CISO · California, US', value:210, pct:52, correct:false},
+      {id:'pjm', label:'PJM · Mid-Atlantic, US', value:380, pct:82, correct:false}
+    ],
+    gridRange:'352–438 gCO₂e/kWh across the observed day',
+    facility:{title:"Raleigh Pointe Self-Hosted — Facility & Hardware Reference",note:"Colocated facility · Texas data center · authoritative scenario values for the most recent facility reporting year (static reference, not a live tool)",fields:[["PUE","1.51"],["WUE","0.80 L/kWh"],["Estimated water consumption (24h)","244.5 L"],["Cooling approach","Air-cooled with mechanical assist and no free cooling"],["Hardware refresh cycle","5 years (H100 servers)"],["Annualized embodied-carbon allocation","12,800 kg CO₂e/year"],["Embodied carbon — representative day","35.07 kg CO₂e"]]},
+    options:[
+      {name:"Schedule nonurgent model retraining during lower-carbon periods",
+       env:"Estimated 8%–15% reduction in carbon emissions associated with retraining, with little change in total energy.",
+       cost:"Expected to be approximately cost neutral.",
+       perf:"Retraining completion may be delayed by up to 12 hours. Real-time inference is unaffected.",
+       ops:"Requires classification of nonurgent workloads, grid-intensity scheduling rules, and exception handling.",
+       effort:"Low-to-moderate effort; approximately 2–4 weeks.",
+       uncertainty:"Benefit depends on retraining volume and the availability of lower-carbon periods."},
+      {name:"Apply validated GPU power caps",
+       env:"Estimated 7%–12% reduction in GPU energy. Carbon and electricity cost are expected to decrease in the same direction if grid intensity and workload volume remain comparable.",
+       cost:"Estimated 7%–12% reduction in workload-related electricity cost; no new hardware purchase is required.",
+       perf:"Training duration may increase by 5%–9%. Expected inference-latency effect is less than 2% after validation.",
+       ops:"Requires hardware testing, approved cap settings, thermal monitoring, performance validation, and rollback procedures.",
+       effort:"Moderate effort; approximately 4–8 weeks.",
+       uncertainty:"Results vary by workload, power-cap setting, hardware condition, and thermal behavior."},
+      {name:"Place a portion of the GPU fleet in a low-power state during low demand",
+       env:"Estimated 6%–14% reduction in energy and related operational carbon emissions.",
+       cost:"Expected reduction in electricity cost; implementation uses existing hardware.",
+       perf:"Returning capacity to service requires approximately 3–5 minutes.",
+       ops:"Requires demand thresholds, capacity safeguards, automated transitions, health checks, and recovery procedures.",
+       effort:"Moderate effort; approximately 4–8 weeks.",
+       uncertainty:"Results depend on low-demand duration, the number of GPUs transitioned, and recovery reliability."},
+      {name:"Improve airflow management and cooling configuration",
+       env:"Estimated reduction in PUE from 1.51 to 1.42–1.47, corresponding to an estimated 3%–6% reduction in facility energy and related carbon emissions.",
+       cost:"Expected reduction in facility electricity cost; minor implementation or maintenance costs may occur.",
+       perf:"No negative performance effect is expected after thermal validation.",
+       ops:"Requires airflow assessment, containment or configuration changes, temperature monitoring, and facility coordination.",
+       effort:"Moderate effort; approximately 8–16 weeks.",
+       uncertainty:"Results depend on facility layout, ambient conditions, cooling controls, and implementation quality."},
+      {name:"Extend the hardware refresh cycle from five to six years",
+       env:"Approximately 17% reduction in annualized embodied-carbon allocation. No direct operational-energy reduction is expected.",
+       cost:"Defers capital replacement cost, although maintenance and support costs may increase.",
+       perf:"Reliability, supportability, and performance risks may increase as hardware ages.",
+       ops:"Requires lifecycle-policy approval, condition monitoring, support review, and replacement-risk planning.",
+       effort:"Policy decision and planning: approximately 2–4 weeks; environmental and financial effects occur over the remaining lifecycle.",
+       uncertainty:"Benefits depend on hardware condition, failure rates, support availability, and future workload requirements."},
+      {name:"Expand utilization, energy, and thermal alerts",
+       env:"Minimal direct environmental effect; may help identify inefficient or abnormal operation sooner.",
+       cost:"Small operational and monitoring overhead.",
+       perf:"No direct performance effect is expected.",
+       ops:"Requires thresholds, notification routing, ownership, and response procedures.",
+       effort:"Low effort; approximately 2–4 weeks.",
+       uncertainty:"Indirect benefits depend on whether teams act on the alerts."}
+    ]
+  }
+};
+
+const STEP_DEFS = {
+  aws:['narrative','constraints','config','codecarbon','native','ccf','util','grid','facility','options','evidence'],
+  azure:['narrative','constraints','config','codecarbon','native','ccf','util','grid','facility','options','evidence'],
+  self:['narrative','constraints','config','codecarbon','util','grid','crosscheck','facility','options','evidence']
+};
+
+const STEP_LABELS = {
+  narrative:'Scenario brief',
+  constraints:'Objectives & constraints',
+  config:'Current configuration',
+  codecarbon:'CodeCarbon output',
+  native:'Cloud sustainability console',
+  crosscheck:'Emissions cross-check',
+  ccf:'Cloud Carbon Footprint',
+  util:'Utilization dashboard',
+  grid:'Grid carbon intensity',
+  facility:'Facility & hardware reference',
+  options:'Engineering options reference',
+  evidence:'Evidence capture & export'
+};
+
+const VCF_TAGS = {
+  aws:{native:'P1-1',ccf:'P1-2',util:'P1-3',evidence:'P1-4'},
+  azure:{native:'P2-1',ccf:'P2-2',util:'P2-3',evidence:'P2-4'},
+  self:{codecarbon:'P3-1',util:'P3-2',crosscheck:'P3-3',evidence:'P3-4'}
+};
+
+const GATED_STEPS = ['codecarbon','native','ccf','util','grid','crosscheck'];
+
+let state = {
+  part:'aws',
+  stepIndex:0,
+  completedSteps:{aws:new Set(),azure:new Set(),self:new Set()},
+  partUnlocked:{aws:true,azure:true,self:true},
+  envSelection:null,
+  sel:{aws:{},azure:{},self:{}}
+};
+
+function barColor(part){ return {aws:'#FF9900',azure:'#0078D4',self:'#F46800'}[part]; }
+
+function scaledDataset(part, factor){
+  const p = PARTS[part];
+  const trend = p.trend.map(r=>{
+    const vol = Math.round(parseFloat(r[1].replace(/,/g,''))*factor);
+    const energy = (parseFloat(r[2])*factor).toFixed(1);
+    const gpu = Math.max(1,Math.min(99,Math.round(parseFloat(r[4])*factor)));
+    const cpu = Math.max(1,Math.min(99,Math.round(parseFloat(r[5])*factor)));
+    const mem = Math.max(1,Math.min(99,Math.round(parseFloat(r[6])*factor)));
+    return [r[0], vol.toLocaleString(), energy, r[3], gpu, cpu, mem];
+  });
+  const volSum = trend.reduce((a,r)=>a+parseFloat(r[1].replace(/,/g,'')),0);
+  const energySum = trend.reduce((a,r)=>a+parseFloat(r[2]),0);
+  const avgIntensity = Math.round(trend.reduce((a,r)=>a+parseFloat(r[3]),0)/trend.length);
+  const avgGpu = Math.round(trend.reduce((a,r)=>a+r[4],0)/trend.length);
+  const avgCpu = Math.round(trend.reduce((a,r)=>a+r[5],0)/trend.length);
+  const avgMem = Math.round(trend.reduce((a,r)=>a+r[6],0)/trend.length);
+  return {
+    trend,
+    totals:{vol:Math.round(volSum).toLocaleString(), energy:energySum.toFixed(1)+' kWh', intensity:avgIntensity, gpu:avgGpu, cpu:avgCpu, mem:avgMem, storage:Math.max(1,Math.round(p.storageAvg*factor)), net:Math.max(1,Math.round(p.netAvg*factor))+' Mbps'}
+  };
+}
+
+function correctDataset(part){
+  const p = PARTS[part];
+  return {trend:p.trend, totals:{vol:p.trend.reduce((a,r)=>a+parseFloat(r[1].replace(/,/g,'')),0).toLocaleString(), energy:p.trend.reduce((a,r)=>a+parseFloat(r[2]),0).toFixed(1)+' kWh', intensity:Math.round(p.trend.reduce((a,r)=>a+parseFloat(r[3]),0)/p.trend.length), gpu:Math.round(p.trend.reduce((a,r)=>a+parseFloat(r[4]),0)/p.trend.length), cpu:Math.round(p.trend.reduce((a,r)=>a+parseFloat(r[5]),0)/p.trend.length), mem:Math.round(p.trend.reduce((a,r)=>a+parseFloat(r[6]),0)/p.trend.length), storage:p.storageAvg, net:p.netAvg+' Mbps'}};
+}
+
+function renderTopTabs(){
+  const el = document.getElementById('partTabs');
+  el.innerHTML = '';
+  ['aws','azure','self'].forEach(k=>{
+    const p = PARTS[k];
+    const btn = document.createElement('div');
+    const unlocked = state.partUnlocked[k];
+    btn.className = 'part-tab' + (state.part===k?' active':'') + (unlocked?'':' locked');
+    btn.innerHTML = p.label + (unlocked?'':' <span class="lock">&#128274;</span>');
+    btn.setAttribute('role','button');btn.tabIndex=unlocked?0:-1;btn.onkeydown=e=>{if(e.key==='Enter'||e.key===' '){e.preventDefault();btn.click();}};btn.onclick = ()=>{ if(unlocked){ state.part=k; state.stepIndex=0; renderAll(); } };
+    el.appendChild(btn);
+  });
+}
+
+function renderProgress(){
+  const el = document.getElementById('progressStrip');
+  const totalSteps = STEP_DEFS[state.part].length;
+  const done = state.completedSteps[state.part].size;
+  el.innerHTML = `<div class="seg"><b>${PARTS[state.part].label}</b></div>
+    <div class="seg">${done} of ${totalSteps} steps recorded</div>
+    <div class="seg">Fleet / cluster: ${PARTS[state.part].org} — ${PARTS[state.part].workload}</div>`;
+}
+
+function renderRail(){
+  const rail = document.getElementById('rail');
+  rail.innerHTML = '<h4>Part task sequence</h4>';
+  const steps = STEP_DEFS[state.part];
+  steps.forEach((s,i)=>{
+    const row = document.createElement('div');
+    const complete = state.completedSteps[state.part].has(s);
+    row.className = 'rail-step' + (i===state.stepIndex?' active':'') + (complete?' complete':'');
+    const tag = (VCF_TAGS[state.part]||{})[s];
+    row.innerHTML = `<span class="chk">${complete?'&#10003;':''}</span><span>${STEP_LABELS[s]}</span>${tag?`<span class="vcf-tag">${tag}</span>`:''}`;
+    row.setAttribute('role','button');row.tabIndex=0;row.onkeydown=e=>{if(e.key==='Enter'||e.key===' '){e.preventDefault();row.click();}};row.onclick = ()=>{ state.stepIndex=i; renderStage(); renderRail(); };
+    rail.appendChild(row);
+  });
+}
+
+function retryBanner(text){
+  return `<div style="background:#FCEBEB;border-left:3px solid #A32D2D;color:#7A1F1F;padding:10px 14px;font-size:0.85rem;margin-top:12px;">
+    <b>Doesn't look right.</b> ${text}
+  </div>`;
+}
+function okBanner(text){
+  return `<div style="background:#EAF3DE;border-left:3px solid #3B6D11;color:#27500A;padding:10px 14px;font-size:0.85rem;margin-top:12px;">
+    <b>Recorded.</b> ${text}
+  </div>`;
+}
+function pickPrompt(text){
+  return `<div style="background:#F4F6F1;border-left:3px solid var(--lab-line);color:#5B6A5F;padding:10px 14px;font-size:0.85rem;margin-top:12px;">${text}</div>`;
+}
+
+function seededValue(str, min, max){
+  let h = 0;
+  for(let i=0;i<str.length;i++){ h = (h*31 + str.charCodeAt(i)) >>> 0; }
+  return min + (h % (max-min+1));
+}
+
+function renderMonthlyTrend(latest, part){
+  const months = ['7 mo ago','6 mo ago','5 mo ago','4 mo ago','3 mo ago','2 mo ago','Last month'];
+  const factors = [1.22,1.16,1.11,1.08,1.05,1.03,1.0];
+  const vals = factors.map(f=>Math.round(latest*f));
+  const max = Math.max(...vals);
+  const color = barColor(part);
+  const bars = vals.map((v,i)=>`
+    <div style="display:flex;flex-direction:column;align-items:center;gap:4px;flex:1;">
+      <div style="font-size:0.68rem;color:#5A6672;">${v}</div>
+      <div style="width:70%;background:${color};border-radius:2px 2px 0 0;height:${Math.max(6,Math.round((v/max)*70))}px;"></div>
+      <div style="font-size:0.64rem;color:#8A94A0;white-space:nowrap;">${months[i]}</div>
+    </div>`).join('');
+  return `<div style="margin-top:14px;background:#fff;border:1px solid #D5DBDB;border-radius:4px;padding:12px 14px;">
+    <div style="font-size:0.72rem;color:#5A6672;text-transform:uppercase;margin-bottom:8px;">Monthly emissions trend (kg CO₂e)</div>
+    <div style="display:flex;align-items:flex-end;gap:6px;height:100px;">${bars}</div>
+  </div>`;
+}
+
+function renderZoneMap(gridOptions, selectedId){
+  const cells = gridOptions.map(z=>{
+    const isSel = z.id===selectedId;
+    const intensity = z.value;
+    const color = intensity>350 ? '#8B3A3A' : intensity>150 ? '#B98A3D' : '#3B7A5A';
+    return `<div style="flex:1;min-width:70px;padding:10px 8px;border-radius:4px;background:${color};opacity:${isSel?1:0.45};border:${isSel?'2px solid #fff':'2px solid transparent'};text-align:center;">
+      <div style="font-size:0.68rem;color:#fff;font-weight:600;">${z.label.split('·')[0].trim()}</div>
+      <div style="font-size:0.62rem;color:rgba(255,255,255,0.85);">${z.value} gCO₂e/kWh</div>
+    </div>`;
+  }).join('');
+  return `<div style="display:flex;gap:6px;margin-bottom:14px;">${cells}</div>
+    <div style="font-size:0.7rem;color:#7FA8BF;margin-bottom:10px;">Simplified zone view — the live product renders this as a color-coded world map with hourly detail.</div>`;
+}
+
+function renderElectricityMix(intensity){
+  const fossilPct = Math.max(5, Math.min(95, Math.round(intensity/5)));
+  const cleanPct = 100 - fossilPct;
+  return `<div style="margin-top:8px;">
+    <div style="display:flex;height:8px;border-radius:4px;overflow:hidden;width:200px;">
+      <div style="background:#8B3A3A;width:${fossilPct}%;"></div>
+      <div style="background:#3B7A5A;width:${cleanPct}%;"></div>
+    </div>
+    <div style="font-size:0.72rem;color:#B9D8E6;margin-top:3px;">${fossilPct}% fossil · ${cleanPct}% low-carbon</div>
+  </div>`;
+}
+
+function awsChrome(pageTitle, breadcrumb, navItems, activeNav, accountLabel, region, bodyHtml){
+  const navHtml = navItems.map(n=>`<div class="rc-leftnav-item${n===activeNav?' active':''}">${n}</div>`).join('');
+  return `<div class="rc-shell aws-shell">
+    <div class="rc-topbar">
+      <div class="rc-logo"><span style="color:var(--aws-orange);">▲</span> aws</div>
+      <div class="rc-search">Search for services, features, blogs, docs, and more</div>
+      <div class="rc-topbar-right">
+        <span class="rc-pill">${region}</span>
+        <span class="rc-icon-dot"></span>
+        <span class="rc-pill">${accountLabel}</span>
+        <div class="rc-avatar">RP</div>
+      </div>
+    </div>
+    <div class="rc-breadcrumb">${breadcrumb} <span style="color:#16191F;font-weight:600;margin-left:6px;">${pageTitle}</span></div>
+    <div class="rc-bodyrow">
+      <div class="rc-leftnav">${navHtml}</div>
+      <div class="rc-content">${bodyHtml}</div>
+    </div>
+  </div>`;
+}
+
+function azureChrome(pageTitle, navItems, activeNav, accountLabel, bodyHtml){
+  const navHtml = navItems.map(n=>`<div class="rc-leftnav-item${n===activeNav?' active':''}">${n}</div>`).join('');
+  const railIcons = ['Home','Dashboard','All services'];
+  return `<div class="rc-shell az-shell">
+    <div class="rc-topbar">
+      <div class="rc-logo">☰ <span style="color:#50B1F1;">◆</span> Microsoft Azure</div>
+      <div class="rc-search">Search resources, services, and docs (G+/)</div>
+      <div class="rc-topbar-right">
+        <span class="rc-pill">${accountLabel}</span>
+        <div class="rc-avatar">RP</div>
+      </div>
+    </div>
+    <div class="rc-bodyrow">
+      <div class="rc-iconrail">${railIcons.map(()=>`<div class="ri"></div>`).join('')}</div>
+      <div class="rc-leftnav" style="padding-top:16px;">
+        <div style="padding:0 16px 10px 16px;font-weight:600;font-size:0.86rem;color:#201F1E;">${pageTitle}</div>
+        ${navHtml}
+      </div>
+      <div class="rc-content">${bodyHtml}</div>
+    </div>
+  </div>`;
+}
+
+function grafanaChrome(dashboardTitle, bodyHtml){
+  const railIcons = ['search','dashboards','explore','alerting'];
+  return `<div class="rc-shell gr-shell">
+    <div class="rc-topbar">
+      <div class="rc-logo" style="color:var(--gr-orange);">◉ Grafana</div>
+      <div style="font-size:0.85rem;color:var(--gr-text);">${dashboardTitle}</div>
+      <div class="rc-topbar-right">
+        <span class="gr-timerange">Last 24 hours</span>
+        <span class="rc-icon-dot"></span>
+      </div>
+    </div>
+    <div class="rc-bodyrow">
+      <div class="rc-iconrail">${railIcons.map((r,i)=>`<div class="ri${i===1?' active':''}"></div>`).join('')}</div>
+      <div class="rc-content">${bodyHtml}</div>
+    </div>
+  </div>`;
+}
+
+function selectHtml(id, label, options, current){
+  const opts = options.map(o=>{
+    const v = typeof o==='string'?o:o.v;
+    const l = typeof o==='string'?o:o.l;
+    return `<option value="${v}" ${current===v?'selected':''}>${l}</option>`;
+  }).join('');
+  return `<div style="margin-bottom:10px;"><label style="display:block;font-size:0.76rem;color:#5B6A5F;margin-bottom:4px;">${label}</label>
+    <select id="${id}" style="border:1px solid var(--lab-line);border-radius:5px;padding:7px 10px;font-size:0.88rem;min-width:220px;">
+      <option value="" ${!current?'selected':''}>Select…</option>
+      ${opts}
+    </select></div>`;
+}
+
+function renderTrendTable(data, volLabel, color, dark){
+  const maxEnergy = Math.max(...data.trend.map(r=>parseFloat(r[2])));
+  let rows = data.trend.map(r=>`
+    <tr>
+      <td>${r[0]}</td>
+      <td>${r[1]}</td>
+      <td>${r[2]} kWh<div class="bar-track" style="margin-top:4px;"><div class="bar-fill" style="width:${Math.round(parseFloat(r[2])/maxEnergy*100)}%;background:${color};"></div></div></td>
+      <td>${r[3]} gCO₂e/kWh</td>
+      <td>${r[4]}%<div class="bar-track" style="margin-top:4px;"><div class="bar-fill" style="width:${r[4]}%;background:#6B7A6E;"></div></div></td>
+      <td>${r[5]}%</td>
+      <td>${r[6]}%</td>
+    </tr>`).join('');
+  const wrapStyle = dark
+    ? 'background:var(--gr-panel);border:1px solid var(--gr-line);border-radius:6px;padding:14px 16px;margin-top:14px;'
+    : 'background:var(--lab-card);border:1px solid var(--lab-line);border-radius:8px;padding:14px 16px;margin-top:14px;';
+  const totalRowStyle = dark ? 'font-weight:600;background:#25272B;' : 'font-weight:600;background:#EEF1EA;';
+  const footStyle = dark ? 'color:var(--gr-text-dim);' : '';
+  return `<div style="${wrapStyle}">
+    <table class="datatable">
+      <thead><tr><th>Period</th><th>${volLabel}</th><th>Energy</th><th>Grid intensity</th><th>GPU</th><th>CPU</th><th>Memory</th></tr></thead>
+      <tbody>${rows}
+      <tr style="${totalRowStyle}"><td>24-hour total / avg</td><td>${data.totals.vol}</td><td>${data.totals.energy}</td><td>${data.totals.intensity} gCO₂e/kWh</td><td>${data.totals.gpu}%</td><td>${data.totals.cpu}%</td><td>${data.totals.mem}%</td></tr>
+      </tbody>
+    </table>
+    <p class="footnote" style="${footStyle}">Sampled every 15 minutes across one representative 24-hour period. Average storage utilization ${data.totals.storage}%. Average network throughput ${data.totals.net}.</p>
+  </div>`;
+}
+
+function renderStep(){
+  const part = state.part;
+  const p = PARTS[part];
+  const step = STEP_DEFS[part][state.stepIndex];
+  const sel = state.sel[part];
+  let html = '';
+
+  if(step==='narrative'){
+    html = `<div class="lab-page">
+      <span class="badge badge-neutral">Company & workload brief</span>
+      <h2>${p.org} — ${p.workload}</h2>
+      <div class="role-line">Your role: ${p.role}</div>
+      <p>${p.narrative}</p>
+      <h4 style="font-size:0.9rem;margin-top:18px;">Supporting characters</h4>
+      ${p.team.map(t=>`<p style="margin:4px 0;"><b>${t[0]}</b> — ${t[1]}</p>`).join('')}
+    </div>`;
+  }
+
+  else if(step==='constraints'){
+    html = `<div class="lab-page">
+      <span class="badge badge-neutral">Organizational objectives & constraints</span>
+      <h2>${p.org} — sustainability context</h2>
+      <p style="color:#5B6A5F;">These facts are provided directly — you are not expected to derive them from the monitoring tools. They carry forward into your evidence export.</p>
+      <div class="constraint-grid">
+        ${p.constraints.map(c=>`<div class="constraint-item"><div class="lbl">${c[0]}</div><p>${c[1]}</p></div>`).join('')}
+      </div>
+    </div>`;
+  }
+
+  else if(step==='config'){
+    html = `<div class="lab-page">
+      <span class="badge badge-neutral">Current configuration & operating profile</span>
+      <h2>${p.workload} — observed operating pattern</h2>
+      <ul>${p.config.map(c=>`<li>${c}</li>`).join('')}</ul>
+      <p class="footnote">Exact energy, emissions, utilization, and grid-intensity readings are not listed here — locate and record them from the monitoring tools in the following steps.</p>
+    </div>`;
+  }
+
+  else if(step==='codecarbon'){
+    const cc = p.ccConfig;
+    const wSel = sel.cc_workload || '', gSel = sel.cc_geo || '', pSel = sel.cc_period || '', bSel = sel.cc_boundary || '';
+    const allSet = wSel && gSel && pSel && bSel;
+    const ran = !!sel.cc_ran;
+    const formHtml = `<div class="lab-page">
+      <p>Configure the CodeCarbon monitoring session for the ${p.workload} workload, then run the configuration validation to view results.</p>
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:0 20px;max-width:640px;">
+        ${selectHtml('cc_workload','Workload target', cc.workload.map(o=>({v:o.id,l:o.label})), wSel)}
+        ${selectHtml('cc_geo','Geographic setting', cc.geo.map(o=>({v:o.id,l:o.label})), gSel)}
+        ${selectHtml('cc_period','Observation period / workload record', cc.period.map(o=>({v:o.id,l:o.label})), pSel)}
+        ${selectHtml('cc_boundary','Measurement boundary', cc.boundary.map(o=>({v:o.id,l:o.label})), bSel)}
+      </div>
+      <button class="navbtn" id="ccValidateBtn" ${allSet?'':'disabled'} style="margin-top:8px;">Run configuration validation</button>
+    </div>`;
+    let resultHtml = '';
+    if(ran){
+      const wObj = cc.workload.find(o=>o.id===wSel);
+      const bObj = cc.boundary.find(o=>o.id===bSel);
+      const gObj = cc.geo.find(o=>o.id===gSel);
+      const pObj = cc.period.find(o=>o.id===pSel);
+      const energyVal = (wObj.energy * bObj.factor * pObj.factor);
+      const emissionsVal = wObj.emissions!=null ? (wObj.emissions * bObj.factor * pObj.factor * gObj.intensity) : null;
+      resultHtml = `<div class="tool-window">
+        <div class="tool-titlebar"><div class="dot-row"><span class="tdot"></span><span class="tdot"></span><span class="tdot"></span></div><div class="url">$ python monitor_workload.py --validate --run</div></div>
+        <div class="terminal">[codecarbon INFO] Configuration validated for workload target: <b>${wObj.label}</b>
+<span class="dim">[codecarbon INFO] Hardware detected: ${wObj.hardware}</span>
+<span class="dim">[codecarbon INFO] Geographic setting: ${gObj.label}</span>
+<span class="dim">[codecarbon INFO] Observation period: ${pObj.label}</span>
+<span class="dim">[codecarbon INFO] Measurement boundary: ${bObj.label}</span>
+
+[codecarbon INFO] === Run summary ===
+  Energy consumed .......... ${energyVal.toFixed(1)} kWh${emissionsVal!=null?`\n  Emissions estimate ........ ${emissionsVal.toFixed(2)} kg CO₂e`:''}
+  Estimation basis .......... estimated from hardware + utilization</div>
+      </div>` + okBanner(`Add ${emissionsVal!=null?'the energy and emissions values':'the energy value'} above to your evidence template.`);
+    } else {
+      resultHtml = pickPrompt('Set all four fields, then run the configuration validation to view results.');
+    }
+    html = formHtml + resultHtml;
+  }
+
+  else if(step==='native'){
+    const filters = p.nativeFilterDefs;
+    const filterHtml = filters.map(f=>selectHtml('nf_'+f.key, f.label, f.options, sel['nf_'+f.key]||'')).join('');
+    const filterVals = filters.map(f=>sel['nf_'+f.key]||'');
+    const filtersAllSet = filterVals.every(v=>v);
+    const filtersCorrect = filters.every(f=>(sel['nf_'+f.key]||'')===f.correct);
+    let scopeHtml = '';
+    if(p.nativeScopes){
+      const s1 = !!sel.scope1, s2 = !!sel.scope2, s3 = !!sel.scope3;
+      scopeHtml = `<div style="margin:10px 0;"><label style="display:block;font-size:0.76rem;color:#5B6A5F;margin-bottom:6px;">Emissions scope</label>
+        <label style="margin-right:14px;font-size:0.86rem;"><input type="checkbox" id="scope1" ${s1?'checked':''}> Scope 1</label>
+        <label style="margin-right:14px;font-size:0.86rem;"><input type="checkbox" id="scope2" ${s2?'checked':''}> Scope 2</label>
+        <label style="font-size:0.86rem;"><input type="checkbox" id="scope3" ${s3?'checked':''}> Scope 3</label></div>`;
+    }
+    let resultCards = '';
+    let statusHtml = '';
+    let monthlyChart = '';
+    const anyScopeChecked = sel.scope1||sel.scope2||sel.scope3;
+    const attempted = filtersAllSet && (!p.nativeScopes || anyScopeChecked);
+    if(!attempted){
+      statusHtml = pickPrompt(`Set every filter (${filters.map(f=>f.label).join(', ')}${p.nativeScopes?', Scope':''}) to view emissions data.`);
+    } else {
+      const comboKey = part + '|' + filterVals.join('|');
+      const kwh = filtersCorrect ? p.nativeCorrectEnergy : seededValue(comboKey, p.nativeDecoyRange[0], p.nativeDecoyRange[1]);
+      const coveragePct = filtersCorrect ? 100 : seededValue(comboKey+'|cov', 3, 42);
+      let scopeFactor = 1, scopeNote = '';
+      if(p.nativeScopes){
+        const s1=!!sel.scope1, s2=!!sel.scope2, s3=!!sel.scope3;
+        if(s2&&s3){ scopeFactor=1; }
+        else if(s2||s3){ scopeFactor=0.62; scopeNote=' — only one of the two applicable scopes is selected'; }
+        else { scopeFactor=0; scopeNote=' — this is an all-cloud account with no on-site fuel combustion, so Scope 1 has no emissions to report'; }
+      }
+      const emissions = Math.round(kwh * p.nativeRatio * scopeFactor);
+      const cls = part==='aws'?'aws':'az';
+      const scopeLabel = p.nativeScopes ? (scopeFactor===1?'Scope 2+3':scopeFactor===0.62?'partial scope':'Scope 1') : '';
+      resultCards = `<div class="${cls}-metric-row">
+        <div class="${cls}-metric-card"><div class="k">Estimated emissions${scopeLabel?` (${scopeLabel})`:''}</div><div class="v">≈${emissions} kg CO₂e</div><div class="m">${filterVals.join(' · ')}${scopeNote}</div></div>
+        <div class="${cls}-metric-card"><div class="k">Estimated energy</div><div class="v">≈${Math.round(kwh).toLocaleString()} kWh</div><div class="m">Provider-allocated, 30-day trailing</div></div>
+        <div class="${cls}-metric-card"><div class="k">Coverage</div><div class="v">${coveragePct}% of ${part==='aws'?'account':'resource group'} resources</div><div class="m">${filters.map(f=>f.label).join(' + ')} filter applied</div></div>
+      </div>`;
+      statusHtml = okBanner('Add these values to your evidence template.');
+      if(emissions>0) monthlyChart = renderMonthlyTrend(emissions, part);
+    }
+    const methodChip = `<span style="display:inline-block;font-size:0.72rem;border:1px solid #D5DBDB;border-radius:12px;padding:2px 9px;margin-bottom:10px;color:#5A6672;">Location-based method</span>`;
+    const body = `${methodChip}<div style="display:flex;gap:20px;flex-wrap:wrap;margin-bottom:10px;">${filterHtml}</div>${scopeHtml}${resultCards}${monthlyChart}`;
+    if(part==='aws'){
+      html = awsChrome('Emissions overview', 'AWS Sustainability &rsaquo;', ['Overview','Emissions by Region','Emissions by Service','Reports & Exports','Settings'], 'Overview', 'fictional-training-account (000000000000)', 'Oregon', body) + statusHtml;
+    } else {
+      html = azureChrome('Carbon optimization', ['Overview','Emissions Details','Emission Reductions','Settings'], 'Overview', 'raleigh-pointe-azure-sub', body) + statusHtml;
+    }
+  }
+
+  else if(step==='ccf'){
+    const clicked = !!sel.ccfRun;
+    let equivHtml = '';
+    if(clicked){
+      const kg = parseFloat(p.ccfValue);
+      const flightHours = (kg/90).toFixed(1);
+      const phoneCharges = Math.round(kg/0.005);
+      const treeMonths = (kg/1.75).toFixed(1);
+      equivHtml = `<div style="display:flex;gap:22px;margin-top:14px;flex-wrap:wrap;">
+        <div style="font-size:0.82rem;color:#5B6A5F;"><b style="color:#0E5A4B;">≈${flightHours}</b><br>hours of short-haul flight</div>
+        <div style="font-size:0.82rem;color:#5B6A5F;"><b style="color:#0E5A4B;">≈${phoneCharges.toLocaleString()}</b><br>smartphone charges</div>
+        <div style="font-size:0.82rem;color:#5B6A5F;"><b style="color:#0E5A4B;">≈${treeMonths}</b><br>months of one tree's CO₂ absorption</div>
+      </div>`;
+    }
+    html = `<div class="tool-window ccf-window">
+      <div class="ccf-top"><span class="mark"></span><b>Cloud Carbon Footprint</b><span style="color:#5B6A5F;">· vendor-neutral cross-check</span></div>
+      <div class="ccf-body">
+        ${clicked ? `<div class="ccf-hero"><span class="big">${p.ccfValue}</span><span class="lbl">estimated emissions — trailing 30 days, same fleet</span></div><div class="ccf-note">${p.ccfNote}</div>${equivHtml}`
+        : `<p style="font-size:0.88rem;color:#5B6A5F;margin-bottom:12px;">This tool reads directly from the account's billing/usage export for the same fleet you already located.</p><button class="navbtn" id="ccfRunBtn">Run cross-check for this fleet</button>`}
+      </div>
+    </div>`;
+  }
+
+  else if(step==='util'){
+    const isGrafana = part==='self';
+    const resSel = sel.util || '';
+    const resObj = p.utilOptions.find(r=>r.id===resSel);
+    const cls = isGrafana ? 'gr' : (part==='aws'?'aws':'az');
+    let dataBlock = '';
+    let statusHtml = '';
+    if(resObj){
+      const dataset = resObj.correct ? correctDataset(part) : scaledDataset(part, resObj.factor);
+      const dark = isGrafana;
+      const cards = isGrafana
+        ? `<div class="gr-panelgrid"><div class="gr-panel"><div class="k">GPU utilization</div><div class="v">${dataset.totals.gpu}%</div><div class="m">avg, 24h</div></div><div class="gr-panel"><div class="k">CPU utilization</div><div class="v">${dataset.totals.cpu}%</div><div class="m">avg, 24h</div></div><div class="gr-panel"><div class="k">Memory utilization</div><div class="v">${dataset.totals.mem}%</div><div class="m">avg, 24h</div></div></div>`
+        : `<div class="${cls}-metric-row"><div class="${cls}-metric-card"><div class="k">GPU utilization</div><div class="v">${dataset.totals.gpu}%</div><div class="m">avg, 24h</div></div><div class="${cls}-metric-card"><div class="k">CPU utilization</div><div class="v">${dataset.totals.cpu}%</div><div class="m">avg, 24h</div></div><div class="${cls}-metric-card"><div class="k">Memory utilization</div><div class="v">${dataset.totals.mem}%</div><div class="m">avg, 24h</div></div></div>`;
+      dataBlock = cards + renderTrendTable(dataset, p.volLabel, barColor(part), dark);
+      statusHtml = okBanner('Add these values to your evidence template.');
+    } else {
+      statusHtml = pickPrompt('Select the resource, fleet, resource group, or cluster that matches the workload in your brief.');
+    }
+    const resourceLabel = isGrafana ? 'Job / cluster' : 'Resource';
+    const selectorHtml = `<div style="margin-bottom:12px;">${selectHtml('utilSelect', resourceLabel, p.utilOptions.map(r=>({v:r.id,l:r.label})), resSel)}</div>`;
+    if(isGrafana){
+      html = grafanaChrome(p.utilName + ' — cluster utilization', (isGrafana ? selectorHtml.replace('color:#5B6A5F','color:var(--gr-text-dim)') : selectorHtml) + dataBlock) + statusHtml;
+    } else if(part==='aws'){
+      html = awsChrome('Metrics', 'CloudWatch &rsaquo;', ['Dashboards','Alarms','Logs','Metrics','Application Signals','Events','Settings'], 'Metrics', 'fictional-training-account (000000000000)', 'Oregon', selectorHtml + dataBlock) + statusHtml;
+    } else {
+      html = azureChrome('Monitor', ['Overview','Activity log','Alerts','Metrics','Logs','Workbooks','Diagnostic settings'], 'Metrics', 'raleigh-pointe-azure-sub', selectorHtml + dataBlock) + statusHtml;
+    }
+  }
+
+  else if(step==='crosscheck'){
+    html = `<div class="lab-page">
+      <span class="badge badge-neutral">Emissions cross-check calculator</span>
+      <h2>Self-hosted vendor-neutral cross-check</h2>
+      <p>Raleigh Pointe Self-Hosted has no cloud-native sustainability console. Enter the 24-hour monitored energy consumption (from CodeCarbon) and the grid carbon intensity for the correct ERCOT zone (from the grid tool) to calculate a vendor-neutral emissions estimate.</p>
+      <div class="calc-row">
+        <div class="calc-field"><label for="ccEnergy">Energy consumed (kWh)</label><input type="number" id="ccEnergy" value="${sel.crossEnergy||''}" placeholder="e.g. 96.4" /></div>
+        <div class="calc-field"><label for="ccIntensity">Grid intensity (gCO₂e/kWh)</label><input type="number" id="ccIntensity" value="${sel.crossIntensity||''}" placeholder="e.g. 285" /></div>
+        <button class="navbtn" onclick="runCrossCheck()">Calculate</button>
+      </div>
+      <div class="calc-result ${sel.crossResult?'show':''}" id="ccResult" role="status">${sel.crossResult||''}</div>
+      <p class="footnote">Formula: energy (kWh) × grid intensity (gCO₂e/kWh) ÷ 1000 = emissions (kgCO₂e). Use the values you recorded from CodeCarbon and the grid tool in the earlier steps.</p>
+    </div>`;
+  }
+
+  else if(step==='grid'){
+    const zSel = sel.grid || '';
+    const zObj = p.gridOptions.find(z=>z.id===zSel);
+    html = `<div class="tool-window em-window">
+      <div class="em-top"><b>${p.gridToolName}</b> · grid carbon intensity</div>
+      <div class="em-body">
+        <div style="margin-bottom:14px;">${selectHtml('gridSelect','Zone', p.gridOptions.map(z=>({v:z.id,l:z.label})), zSel).replace(/color:#5B6A5F/,'color:#B9D8E6')}</div>
+        ${renderZoneMap(p.gridOptions, zSel)}
+        ${zObj ? `<div class="em-gauge-row">
+          <div class="em-gauge" style="--pct:${zObj.pct}%;" data-val="${zObj.value} gCO₂e/kWh"></div>
+          <div class="em-legend"><b>${zObj.label}</b><br>Current interval: ${zObj.value} gCO₂e/kWh${renderElectricityMix(zObj.value)}</div>
+        </div>` : ''}
+      </div>
+    </div>
+    ${!zSel ? pickPrompt('Select the zone that matches the facility described in your brief.') :
+      okBanner('Add this intensity value to your evidence template.')}`;
+  }
+
+  else if(step==='facility'){
+    const f = p.facility;
+    html = `<div class="pdf-window">
+      <h3>${f.title}</h3>
+      <div class="doc-meta">Static reference document · most recent facility reporting year · ${f.note}</div>
+      <div class="pdf-field-row">
+        ${f.fields.map(fl=>`<div class="pdf-field"><div class="k">${fl[0]}</div><div class="v">${fl[1]}</div></div>`).join('')}
+      </div>
+    </div>
+    <div class="options-note">Facility and lifecycle figures are static planning/facility-level estimates and are not exclusively attributable to the monitored workload. Record these values in your evidence export even though they come from a static reference rather than a live tool.</div>`;
+  }
+
+  else if(step==='options'){
+    html = `<div class="lab-page">
+      <span class="badge badge-neutral">Engineering options reference</span>
+      <h2>${p.org} — feasible optimization options</h2>
+      <div class="options-note">Reference only — no option below is recommended, ranked, or implied as preferred. You are responsible for evaluating applicability, tradeoffs, and prioritization in the written report.</div>
+      <div style="overflow-x:auto;">
+      <table class="datatable" style="min-width:1150px;">
+        <thead><tr><th style="width:150px;">Option</th><th>Environmental Effect</th><th>Cost Effect</th><th>Performance Effect</th><th>Operational Considerations</th><th>Effort &amp; Time Frame</th><th>Uncertainty</th></tr></thead>
+        <tbody>${p.options.map(o=>`<tr><td style="font-weight:600;">${o.name}</td><td>${o.env}</td><td>${o.cost}</td><td>${o.perf}</td><td>${o.ops}</td><td>${o.effort}</td><td>${o.uncertainty}</td></tr>`).join('')}</tbody>
+      </table>
+      </div>
+      <p class="footnote">These are scenario planning estimates, not guaranteed outcomes. Actual results depend on implementation, workload behavior, and environmental conditions.</p>
+    </div>`;
+  }
+
+  else if(step==='evidence'){
+    const items = ['Company & workload brief','Organizational objectives & constraints','Current configuration & operating profile','Time-series environmental performance data','Facility & hardware reference values','Engineering options reference'];
+    const gated = STEP_DEFS[part].filter(s=>GATED_STEPS.includes(s));
+    const gatedDone = gated.every(s=>state.completedSteps[part].has(s));
+    const missing = gated.filter(s=>!state.completedSteps[part].has(s)).map(s=>STEP_LABELS[s]);
+    html = `<div class="lab-page">
+      <span class="badge badge-neutral">Evidence capture & export</span>
+      <h2>${p.org} — confirm evidence before ${part==='self'?'completing the lab':'unlocking the next part'}</h2>
+      <ul class="evidence-checklist" id="evidenceList">
+        ${items.map((it)=>`<li class="done"><span class="chk">&#10003;</span><span>${it}</span></li>`).join('')}
+        ${gated.map(s=>`<li class="${state.completedSteps[part].has(s)?'done':''}"><span class="chk">${state.completedSteps[part].has(s)?'&#10003;':''}</span><span>${STEP_LABELS[s]} (tool-sourced)</span></li>`).join('')}
+      </ul>`;
+    if(!gatedDone){
+      html += retryBanner(`Complete these tool-sourced readings before exporting: ${missing.join(', ')}.`);
+    }
+    if(part==='self'){
+      html += `<h4 style="margin-top:22px;">Select one environment for your written report</h4>
+      <div class="env-pick" id="envPick">
+        <label><input type="radio" name="envpick" value="aws" ${state.envSelection==='aws'?'checked':''}> Raleigh Pointe AWS — PixelSort</label>
+        <label><input type="radio" name="envpick" value="azure" ${state.envSelection==='azure'?'checked':''}> Raleigh Pointe Azure — ClaimSense</label>
+        <label><input type="radio" name="envpick" value="self" ${state.envSelection==='self'?'checked':''}> Raleigh Pointe Self-Hosted — PathFinder</label>
+      </div>
+      <button class="navbtn" id="exportBtn" ${(gatedDone && state.envSelection)?'':'disabled'}>Export evidence & complete lab</button>`;
+    } else {
+      html += `<button class="navbtn" id="exportBtn" style="margin-top:18px;" ${gatedDone?'':'disabled'}>Export Part ${part==='aws'?'1':'2'} evidence & continue</button>`;
+    }
+    html += `</div>`;
+  }
+
+  document.getElementById('stage').innerHTML = html + stepNav();
+  bindStepInputs(step, part);
+}
+
+function bindStepInputs(step, part){
+  const sel = state.sel[part];
+
+  if(step==='codecarbon'){
+    ['cc_workload','cc_geo','cc_period','cc_boundary'].forEach(id=>{
+      const el = document.getElementById(id);
+      if(el) el.onchange = (e)=>{ sel[id] = e.target.value; sel.cc_ran=false; renderStage(); renderRail(); };
+    });
+    const btn = document.getElementById('ccValidateBtn');
+    if(btn) btn.onclick = ()=>{
+      sel.cc_ran = true;
+      markStepComplete(part,'codecarbon');
+      renderStage(); renderRail();
+    };
+  }
+
+  if(step==='native'){
+    const p = PARTS[part];
+    p.nativeFilterDefs.forEach(f=>{
+      const el = document.getElementById('nf_'+f.key);
+      if(el) el.onchange = (e)=>{ sel['nf_'+f.key] = e.target.value; checkNativeGate(part); renderStage(); renderRail(); };
+    });
+    if(p.nativeScopes){
+      ['scope1','scope2','scope3'].forEach(id=>{
+        const el = document.getElementById(id);
+        if(el) el.onchange = (e)=>{ sel[id] = e.target.checked; checkNativeGate(part); renderStage(); renderRail(); };
+      });
+    }
+  }
+
+  if(step==='ccf'){
+    const btn = document.getElementById('ccfRunBtn');
+    if(btn) btn.onclick = ()=>{ sel.ccfRun = true; markStepComplete(part,'ccf'); renderStage(); };
+  }
+
+  if(step==='util'){
+    const el = document.getElementById('utilSelect');
+    if(el) el.onchange = (e)=>{ sel.util = e.target.value; markStepComplete(part,'util'); renderStage(); renderRail(); };
+  }
+
+  if(step==='grid'){
+    const el = document.getElementById('gridSelect');
+    if(el) el.onchange = (e)=>{ sel.grid = e.target.value; markStepComplete(part,'grid'); renderStage(); renderRail(); };
+  }
+
+  if(step==='evidence'){
+    document.querySelectorAll('#envPick input').forEach(inp=>{
+      inp.onchange = (e)=>{ state.envSelection = e.target.value; renderStage(); };
+    });
+    const btn = document.getElementById('exportBtn');
+    if(btn) btn.onclick = exportEvidence;
+  }
+}
+
+function evaluateGate(part, step, predicate){
+  const p = PARTS[part];
+  if(predicate(p)) markStepComplete(part, step); else unmarkStep(part, step);
+}
+
+function checkNativeGate(part){
+  const p = PARTS[part];
+  const sel = state.sel[part];
+  const filtersAllSet = p.nativeFilterDefs.every(f=>!!(sel['nf_'+f.key]||''));
+  const anyScopeChecked = sel.scope1||sel.scope2||sel.scope3;
+  const attempted = filtersAllSet && (!p.nativeScopes || anyScopeChecked);
+  if(attempted) markStepComplete(part,'native'); else unmarkStep(part,'native');
+}
+
+function markStepComplete(part, step){
+  state.completedSteps[part].add(step);
+  renderRail();
+  renderProgress();
+}
+function unmarkStep(part, step){
+  state.completedSteps[part].delete(step);
+  renderRail();
+  renderProgress();
+}
+
+function stepNav(){
+  const steps = STEP_DEFS[state.part];
+  const step = steps[state.stepIndex];
+  const atStart = state.stepIndex===0;
+  const atEnd = state.stepIndex===steps.length-1;
+  const gatedHere = GATED_STEPS.includes(step);
+  const satisfied = !gatedHere || state.completedSteps[state.part].has(step);
+  return `<div class="stepnav">
+    <button class="navbtn secondary" ${atStart?'disabled':''} onclick="goStep(-1)">Back</button>
+    <button class="navbtn" ${(atEnd||!satisfied)?'disabled':''} onclick="goStep(1)">Next</button>
+  </div>`;
+}
+
+function goStep(delta){
+  const steps = STEP_DEFS[state.part];
+  const newIdx = state.stepIndex + delta;
+  if(newIdx>=0 && newIdx<steps.length){
+    state.stepIndex = newIdx;
+    renderStage();
+    renderRail();
+  }
+}
+
+function runCrossCheck(){
+  const e = parseFloat(document.getElementById('ccEnergy').value);
+  const gi = parseFloat(document.getElementById('ccIntensity').value);
+  const res = document.getElementById('ccResult');
+  if(isNaN(e) || isNaN(gi) || e<=0 || gi<=0){
+    res.className = 'calc-result show';
+    res.style.color = '#A32D2D';
+    res.style.background = '#FCEBEB';
+    res.style.borderLeftColor = '#A32D2D';
+    res.innerHTML = 'Enter a valid energy value and grid intensity before calculating.';
+    return;
+  }
+  const kg = (e*gi/1000);state.sel.self.crossEnergy=e;state.sel.self.crossIntensity=gi;
+  res.className = 'calc-result show';
+  res.style.color = '#7A4A1E';
+  res.style.background = '#F1E3D2';
+  res.style.borderLeftColor = '#A9662E';
+  res.innerHTML = `Estimated emissions: <b>${kg.toFixed(2)} kg CO₂e</b> (${e} kWh × ${gi} gCO₂e/kWh ÷ 1000). Record this value, along with your inputs, in the evidence template.`;
+  state.sel.self.crossResult=res.innerHTML;markStepComplete('self','crosscheck');
+  renderStage();
+}
+
+function exportEvidence(){
+  downloadSelectionRecord();
+  if(state.part==='aws'){ state.partUnlocked.azure = true; }
+  if(state.part==='azure'){ state.partUnlocked.self = true; }
+  renderTopTabs();
+  renderRail();
+  renderProgress();
+  if(state.part!=='self'){
+    setTimeout(()=>{
+      state.part = state.part==='aws' ? 'azure' : 'self';
+      state.stepIndex = 0;
+      renderAll();
+    }, 550);
+  } else {
+    document.getElementById('stage').innerHTML = `<div class="lab-page"><span class="badge badge-neutral">Lab complete</span><h2>Selection record downloaded</h2><p>A JSON selection record has been downloaded, along with your selection of <b>${state.envSelection}</b> as the environment for your written Executive Sustainability Audit Package.</p></div>`;
+  }
+}
+
+function renderStage(){ renderStep(); }
+function renderAll(){
+  renderTopTabs();
+  renderProgress();
+  renderRail();
+  renderStage();
+}
+renderAll();
+
+function selectionRecord(){return {title:'Sustainability baseline portfolio selection record',simulation:true,notice:'Scenario inputs and selected settings only. No live tool collection or validated audit is represented.',selectedReportEnvironment:state.envSelection,activeEnvironment:state.part,environments:Object.fromEntries(['aws','azure','self'].map(k=>[k,{organization:PARTS[k].org,workload:PARTS[k].workload,selectedSettings:state.sel[k],attemptedSteps:[...state.completedSteps[k]]}]))};}
+function downloadSelectionRecord(){const text=JSON.stringify(selectionRecord(),null,2);const u=URL.createObjectURL(new Blob([text],{type:'application/json'}));const a=document.createElement('a');a.href=u;a.download='Sustainability-Simulation-Selection-Record.json';a.click();setTimeout(()=>URL.revokeObjectURL(u),1000);document.getElementById('recordStatus').textContent='Selection record downloaded. It contains scenario selections, not live cloud evidence.';}
+document.getElementById('demoPart').onchange=e=>{state.part=e.target.value;state.stepIndex=0;renderAll();};document.querySelectorAll('[data-jump]').forEach(b=>b.onclick=()=>{state.stepIndex=STEP_DEFS[state.part].indexOf(b.dataset.jump);renderAll();document.getElementById('stage').scrollIntoView({block:'start'});});
+</script>
+</body>
+</html>

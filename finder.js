@@ -16,10 +16,10 @@
     root.innerHTML=side?SHOPMARKUP:MARKUP;
     /* ---- EDIT THESE LISTS when you add new age or theme tags (spell exactly as in Squarespace) ---- */
     var AGES=["Infants & toddlers","3s","Pre-K","Kindergarten","Grades 1–2","Grades 3–5","Grades 6–8","Grades 9–12","Higher education","Educators"];
-    var THEMES=["Jewish learning","Literacy","Math","Science & nature","Social-emotional","Arts & making","Inquiry & curiosity","Assessment & feedback","Planning & leadership","School operations","Family communication","Writing & communication"];
+    var THEMES=["Jewish learning","Literacy","Math","Science & nature","Social-emotional","Arts & making","Inquiry & curiosity","Assessment & feedback","Planning & leadership","School operations","Family communication","Writing & communication","Classroom management","Back to school"];
     var EXTRAS=["Bundle","Free","Bilingual","Editable"];
     /* Shop categories: [name shown, the end of the category's web address] */
-    var CATS=[["Classroom Resources","classroom-resources"],["Lesson Plans & Worksheets","lesson-plans-worksheets"],["Director & Leadership Tools","director-leadership-tools"],["Professional Learning Kits","professional-learning-kits"]];
+    var CATS=[["Classroom Resources","classroom-resources"],["Lesson Plans & Worksheets","lesson-plans-worksheets"],["Director & Leadership Tools","director-leadership-tools"],["Professional Learning Kits","professional-learning-kits"],["Jewish Holidays & Torah","jewish-holidays-torah"]];
     /* Alternate spellings: any word on the right also finds the word on the left */
     var SYN={"chanukkah":["hanukkah","chanukah","hanukah","hannukah"],"passover":["pesach","pesaj"],"alef-bet":["aleph-bet","aleph bet","alef bet","hebrew letters"],"rosh hashanah":["rosh hashana"],"sukkot":["sukkos","succot"],"shabbat":["shabbos","sabbath"],"tu bishvat":["tu b'shvat","tu bshvat"]};
     /* ------------------------------------------------------------------------------------------------ */
@@ -84,7 +84,8 @@
         a.querySelector('h3').textContent=it.title;var im=a.querySelector('img');if(im)im.alt=it.title;grid.appendChild(a);});
       if(more){var m=document.createElement('a');m.className='ccf-more';m.href=shop;m.textContent='See all '+more+' resources ↗︎';grid.appendChild(m);}}
     q.addEventListener('input',render);
-    clear.onclick=function(){q.value='';Object.keys(sel).forEach(function(g){sel[g]=[];});root.querySelectorAll('.ccf-chips button').forEach(function(b){b.setAttribute('aria-pressed','false');});render();};
+    clear.onclick=function(){q.value='';Object.keys(sel).forEach(function(g){sel[g]=[];});root.querySelectorAll('.ccf-chips button,.ccf-list button').forEach(function(b){b.setAttribute('aria-pressed','false');});
+      if(shopMode&&location.pathname.replace(/\/$/,'')!==shop){try{history.replaceState(null,'',shop);}catch(e){}}render();};
     /* preselect from the address, e.g. /resources?age=Pre-K&theme=Jewish learning&q=chanukkah */
     var params=new URLSearchParams(location.search);
     ['cat','age','theme','extra'].forEach(function(g){params.getAll(g).forEach(function(v){root.querySelectorAll('[data-group="'+g+'"] button').forEach(function(b){if(norm(b.textContent)===norm(v)){sel[g].push(b.textContent);b.setAttribute('aria-pressed','true');}});});});
